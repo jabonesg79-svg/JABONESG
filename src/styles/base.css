@@ -81,10 +81,24 @@ img { max-width: 100%; display: block; }
   width: 100%;
   max-width: var(--ancho);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--inset);
 }
 
 .seccion { padding: var(--seccion) 0; }
+
+/* Cabecera de sección: etiqueta pequeña encima del título, siempre a la
+   izquierda y en cacao. El salvia queda reservado a la marca y a los botones. */
+.seccion-cabecera { margin-bottom: var(--hueco-grande); }
+.seccion-cabecera__titulo {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.12;
+  letter-spacing: var(--tracking-titular);
+  text-transform: lowercase;
+  color: var(--cacao);
+  margin-top: 12px;
+}
 .seccion--corta { padding: var(--seccion-corta) 0; }
 .seccion--marfil { background: var(--marfil); }
 .seccion--crema { background: var(--crema); }

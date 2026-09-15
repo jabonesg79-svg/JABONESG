@@ -123,7 +123,7 @@ export default function Tienda() {
             ) : (
               <div className="hero__hueco">
                 <div className="hero__hueco-monograma">
-                  <LogoImagen variante="monograma" ancho={300} alt="" />
+                  <LogoImagen variante="monograma" ancho={180} alt="" />
                 </div>
                 <span className="etiqueta hero__hueco-nota">Foto principal</span>
               </div>
@@ -135,8 +135,9 @@ export default function Tienda() {
       <section className="seccion--marfil" id="catalogo">
         <div className="contenedor catalogo">
           <div className="catalogo__cabecera revelar">
-            <div>
-              <h2>nuestro catálogo</h2>
+            <div className="seccion-cabecera">
+              <span className="etiqueta">Lo que hay hoy</span>
+              <h2 className="seccion-cabecera__titulo">nuestro catálogo</h2>
               <p className="catalogo__conteo">
                 {visibles.length} {visibles.length === 1 ? "jabón" : "jabones"}
                 {linea !== "todas" ? ` en ${linea.toLowerCase()}` : ""}

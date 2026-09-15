@@ -62,12 +62,18 @@
 
   --ancho: 1280px;
   --barra: 74px;
+
+  /* Sangrado lateral único: lo comparten el header, las secciones y la columna
+     de texto del hero, para que todo alinee contra la misma vertical. */
+  --inset: 24px;
+  --sangrado: max(var(--inset), calc((100vw - var(--ancho)) / 2 + var(--inset)));
 }
 
 @media (min-width: 861px) {
   :root {
     --seccion: 120px;
     --seccion-corta: 80px;
+    --inset: 72px;
   }
 }
 

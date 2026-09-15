@@ -52,7 +52,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   position: relative;
   z-index: 0;
   order: 2;
-  padding: var(--hueco-grande) 24px 96px;
+  padding: var(--hueco-grande) var(--inset) 96px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -65,12 +65,15 @@ a.nav__enlace:hover { color: var(--caramelo); }
   font-family: var(--fuente-display);
   font-weight: 400;
   font-size: clamp(56px, 18vw, 80px);
-  line-height: 0.85;
+  line-height: 0.95;
   letter-spacing: -0.03em;
   color: var(--salvia);
   text-transform: lowercase;
   white-space: nowrap;
-  margin: 0;
+  margin: 0 0 20px;
+  /* La "j" y la "g" bajan por debajo de la línea base: este colchón evita
+     que los descendentes toquen el subtitular. */
+  padding-bottom: 0.12em;
   max-width: none;
   pointer-events: none;
   user-select: none;
@@ -79,20 +82,24 @@ a.nav__enlace:hover { color: var(--caramelo); }
 .hero__subtitular {
   font-family: var(--fuente-display);
   font-weight: 400;
-  font-size: clamp(22px, 2.6vw, 36px);
-  line-height: 1.25;
+  font-size: clamp(24px, 2.4vw, 34px);
+  line-height: 1.3;
   letter-spacing: var(--tracking-titular);
   text-transform: lowercase;
   color: var(--cacao);
-  margin-top: 28px;
+  margin-top: 0;
   max-width: 18ch;
 }
 
-.hero__parrafo {
+.hero__parrafo,
+.hero__parrafo * {
   font-size: 15px;
   font-weight: 300;
   line-height: 1.7;
   color: var(--taupe);
+  background: none;
+}
+.hero__parrafo {
   max-width: 38ch;
   margin-top: 20px;
 }
@@ -118,15 +125,16 @@ a.nav__enlace:hover { color: var(--caramelo); }
   inset: 0;
   display: grid;
   place-items: center;
-  color: var(--taupe);
-  opacity: 0.1;
+  opacity: 0.08;
 }
+.hero__hueco-monograma img { width: min(180px, 60%); height: auto; }
 .hero__hueco-nota {
   position: absolute;
-  left: 20px;
-  bottom: 18px;
+  left: 24px;
+  bottom: 24px;
   font-size: 10px;
-  opacity: 0.6;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--taupe) 50%, transparent);
 }
 
 @media (min-width: 861px) {
@@ -136,10 +144,8 @@ a.nav__enlace:hover { color: var(--caramelo); }
   }
   .hero__texto {
     order: 1;
-    padding: 0 64px;
     justify-content: center;
-    padding-bottom: 96px;
-    padding-top: 96px;
+    padding: 96px var(--inset) 96px var(--sangrado);
   }
   .hero__foto {
     order: 2;
@@ -157,7 +163,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
 
 /* --- Catálogo: fichas sin contenedor, sin borde, sin sombra --- */
 
-.catalogo { padding: var(--seccion) 24px; }
+.catalogo { padding: var(--seccion) 0 var(--seccion-corta); }
 
 .catalogo__cabecera {
   display: flex;
@@ -167,6 +173,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   flex-wrap: wrap;
   margin-bottom: var(--hueco-grande);
 }
+.catalogo__cabecera .seccion-cabecera { margin-bottom: 0; }
 .catalogo__conteo { color: var(--taupe); margin-top: 10px; }
 .catalogo__buscador { width: min(100%, 320px); }
 
@@ -249,7 +256,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
 
 .cierre {
   background: var(--marfil);
-  padding: var(--seccion) 24px;
+  padding: var(--seccion) 0;
   text-align: center;
 }
 .cierre__frase {
@@ -263,7 +270,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
 
 .pie {
   background: var(--crema);
-  padding: var(--seccion-corta) 24px var(--hueco-grande);
+  padding: var(--seccion-corta) 0 var(--hueco-grande);
 }
 .pie__malla {
   display: grid;
