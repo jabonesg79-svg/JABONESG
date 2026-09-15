@@ -3,28 +3,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Catálogo público: cualquiera puede leer las prendas (la tienda es pública),
-    // pero solo un usuario autenticado puede crearlas o modificarlas.
-    match /prendas/{prendaId} {
+    // Catálogo público: cualquiera puede leer los productos, porque la tienda
+    // es pública y se renderiza sin sesión. Crear, editar o borrar exige una
+    // sesión autenticada del panel.
+    match /productos/{productoId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Datos privados del panel de gestión: solo usuarios autenticados.
+    // Datos internos del negocio: solo usuarios autenticados.
     match /ventas/{ventaId} {
       allow read, write: if request.auth != null;
     }
     match /facturas/{facturaId} {
       allow read, write: if request.auth != null;
     }
-    match /borradores/{borradorId} {
+    match /clientes/{clienteId} {
       allow read, write: if request.auth != null;
     }
-    match /notas/{notaId} {
+    match /lotes/{loteId} {
+      allow read, write: if request.auth != null;
+    }
+    match /insumos/{insumoId} {
       allow read, write: if request.auth != null;
     }
 
-    // Todo lo demás queda cerrado.
+    // Todo lo demás queda cerrado por defecto.
     match /{document=**} {
       allow read, write: if false;
     }

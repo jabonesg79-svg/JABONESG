@@ -1,0 +1,195 @@
+/* Piezas comunes a las pantallas del panel. */
+
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.metrica { padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+.metrica__icono {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: var(--crema);
+  color: var(--caramelo);
+}
+.metrica__etiqueta {
+  font-size: 10.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--taupe);
+  font-weight: 600;
+}
+.metrica__valor {
+  font-family: var(--display);
+  font-size: 29px;
+  font-weight: 600;
+  color: var(--cacao);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.metrica__nota { font-size: 12.5px; color: var(--tinta-suave); }
+.metrica--acento { background: var(--cacao); border-color: var(--cacao); }
+.metrica--acento .metrica__etiqueta { color: rgba(248, 244, 239, 0.6); }
+.metrica--acento .metrica__valor { color: var(--marfil); }
+.metrica--acento .metrica__nota { color: rgba(248, 244, 239, 0.55); }
+.metrica--acento .metrica__icono { background: rgba(248, 244, 239, 0.14); color: var(--beige); }
+
+.panel-rejilla { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 1040px) { .panel-rejilla { grid-template-columns: 1fr; } }
+
+.bloque { overflow: hidden; }
+.bloque__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--borde);
+}
+.bloque__titulo { font-size: 18px; font-weight: 500; }
+.bloque__cuerpo { padding: 8px 0; }
+.bloque__cuerpo--aire { padding: 20px 22px; }
+
+.lista-simple { display: flex; flex-direction: column; }
+.lista-simple__fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--beige-suave);
+}
+.lista-simple__fila:last-child { border-bottom: none; }
+.lista-simple__nombre { font-weight: 500; font-size: 14px; }
+.lista-simple__meta { font-size: 12px; color: var(--taupe); }
+.lista-simple__valor {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.barra-progreso { height: 6px; border-radius: var(--r-full); background: var(--crema); overflow: hidden; }
+.barra-progreso span { display: block; height: 100%; background: var(--caramelo); border-radius: var(--r-full); }
+
+.herramientas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.herramientas__buscador { flex: 1; min-width: 230px; }
+
+.producto-celda { display: flex; align-items: center; gap: 12px; min-width: 210px; }
+.producto-celda__foto {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-sm);
+  background: var(--crema);
+  display: grid;
+  place-items: center;
+  color: var(--beige);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.producto-celda__foto img { width: 100%; height: 100%; object-fit: cover; }
+.producto-celda__nombre { font-weight: 500; }
+.producto-celda__meta { font-size: 12px; color: var(--taupe); }
+
+.acciones-fila { display: flex; gap: 6px; justify-content: flex-end; }
+
+.formulario { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.formulario__ancho { grid-column: 1 / -1; }
+@media (max-width: 620px) { .formulario { grid-template-columns: 1fr; } }
+
+.interruptor { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.interruptor input { width: 17px; height: 17px; accent-color: var(--caramelo); }
+.interruptor span { font-size: 14px; }
+
+/* --- Punto de venta --- */
+.pos { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 1040px) { .pos { grid-template-columns: 1fr; } }
+
+.pos__catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+}
+.pos__item {
+  padding: 14px;
+  text-align: left;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.16s ease, transform 0.12s ease;
+}
+.pos__item:hover:not(:disabled) { border-color: var(--caramelo); transform: translateY(-2px); }
+.pos__item:disabled { opacity: 0.45; cursor: not-allowed; }
+.pos__item-nombre { font-family: var(--display); font-size: 16px; font-weight: 500; }
+.pos__item-meta { font-size: 11.5px; color: var(--taupe); }
+.pos__item-precio { font-weight: 600; color: var(--caramelo); font-variant-numeric: tabular-nums; }
+
+.carrito { position: sticky; top: 24px; }
+.carrito__lineas { display: flex; flex-direction: column; max-height: 42vh; overflow-y: auto; }
+.carrito__linea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--beige-suave);
+}
+.carrito__nombre { font-size: 13.5px; font-weight: 500; flex: 1; min-width: 0; }
+.carrito__nombre small { display: block; color: var(--taupe); font-weight: 400; }
+.carrito__cant { display: flex; align-items: center; gap: 4px; }
+.carrito__cant button {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--borde-fuerte);
+  background: var(--blanco);
+  display: grid;
+  place-items: center;
+  color: var(--cacao);
+}
+.carrito__cant button:hover { border-color: var(--caramelo); color: var(--caramelo); }
+.carrito__cant span { min-width: 22px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.carrito__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 16px 22px 6px;
+}
+.carrito__total span { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--taupe); }
+.carrito__total strong { font-family: var(--display); font-size: 27px; color: var(--cacao); font-variant-numeric: tabular-nums; }
+.carrito__campos { display: flex; flex-direction: column; gap: 13px; padding: 14px 22px 20px; }
+
+/* --- Factura imprimible --- */
+.factura-hoja { background: var(--blanco); padding: 4px; }
+.factura-hoja__cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--borde);
+}
+.factura-hoja__numero { text-align: right; font-size: 13px; color: var(--taupe); }
+.factura-hoja__numero strong { display: block; font-family: var(--display); font-size: 22px; color: var(--cacao); }
+.factura-hoja__cliente { padding: 16px 0; font-size: 13.5px; color: var(--taupe); }
+.factura-hoja__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 14px;
+  border-top: 2px solid var(--cacao);
+  margin-top: 8px;
+}
+.factura-hoja__total strong { font-family: var(--display); font-size: 25px; color: var(--cacao); }
+.factura-hoja__gracias { text-align: center; padding-top: 22px; }
