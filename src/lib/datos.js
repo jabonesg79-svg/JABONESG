@@ -3,14 +3,18 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
   updateDoc,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
+import { PORTADA_POR_DEFECTO } from "./dominio.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
@@ -126,3 +130,30 @@ export const siguienteNumeroFactura = (facturas) => {
 };
 
 export { query, orderBy };
+
+/* ---------- Portada ---------- */
+
+const PORTADA = ["configuracion", "portada"];
+
+/**
+ * Lee la portada una sola vez. Si el documento no existe, o si la lectura
+ * falla, devuelve los valores por defecto: la home tiene que pintar algo
+ * siempre, incluso sin configuración y sin conexión.
+ */
+export async function leerPortada() {
+  try {
+    const snap = await getDoc(doc(db, ...PORTADA));
+    if (!snap.exists()) return { ...PORTADA_POR_DEFECTO };
+    return { ...PORTADA_POR_DEFECTO, ...snap.data() };
+  } catch {
+    return { ...PORTADA_POR_DEFECTO };
+  }
+}
+
+export async function guardarPortada(datos) {
+  const limpio = Object.fromEntries(
+    Object.keys(PORTADA_POR_DEFECTO).map((clave) => [clave, datos[clave] ?? PORTADA_POR_DEFECTO[clave]]),
+  );
+  await setDoc(doc(db, ...PORTADA), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
+  return limpio;
+}

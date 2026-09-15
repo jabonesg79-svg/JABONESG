@@ -64,3 +64,23 @@ export const estadoStock = (producto) => {
   if (stock <= minimo) return "bajo";
   return "ok";
 };
+
+/* ---------- Portada de la tienda ---------- */
+
+/** Valores con los que arranca la home si el documento aún no existe.
+    La home nunca debe quedar en blanco por falta de configuración. */
+export const PORTADA_POR_DEFECTO = {
+  eyebrow: "100% NATURALES · HECHOS A MANO · INGREDIENTES SELECCIONADOS",
+  marca: "jabonesg",
+  subtitulo: "jabón hecho a mano, en lotes pequeños",
+  parrafo:
+    "Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se empaca una por una.",
+  textoBoton: "Ver el catálogo",
+  linkBoton: "/catalogo",
+  imagenUrl: "",
+  imagenAlt: "",
+  imagenRuta: "",
+};
+
+/** Largo sugerido del párrafo del hero, no impuesto. */
+export const LARGO_PARRAFO_PORTADA = 160;

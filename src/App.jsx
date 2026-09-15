@@ -5,6 +5,7 @@ import Shell from "./pages/Shell.jsx";
 import Tienda from "./pages/Tienda.jsx";
 import Acceso from "./pages/Acceso.jsx";
 import Resumen from "./pages/Resumen.jsx";
+import Portada from "./pages/Portada.jsx";
 import Inventario from "./pages/Inventario.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import Facturas from "./pages/Facturas.jsx";
@@ -40,6 +41,7 @@ export default function App() {
         }
       >
         <Route index element={<Resumen />} />
+        <Route path="portada" element={<Portada />} />
         <Route path="inventario" element={<Inventario />} />
         <Route path="ventas" element={<Ventas />} />
         <Route path="facturas" element={<Facturas />} />

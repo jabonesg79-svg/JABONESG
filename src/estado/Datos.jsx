@@ -3,25 +3,36 @@ import {
   actualizarProducto,
   borrarProducto,
   crearProducto,
+  guardarPortada as guardarPortadaEnFirestore,
   leerFacturas,
+  leerPortada,
   leerProductos,
   leerVentas,
   registrarVenta,
 } from "../lib/datos.js";
+import { PORTADA_POR_DEFECTO } from "../lib/dominio.js";
 import { DatosCtx, useSesion } from "./contextos.js";
 
 /** El visitante solo puede (y solo necesita) leer el catálogo;
     el panel carga además ventas y facturas. */
 const traerTodo = (hayUsuario) =>
   hayUsuario
-    ? Promise.all([leerProductos(), leerVentas(), leerFacturas()])
-    : leerProductos().then((productos) => [productos, [], []]);
+    ? Promise.all([leerProductos(), leerVentas(), leerFacturas(), leerPortada()])
+    : Promise.all([leerProductos(), leerPortada()]).then(([productos, portada]) => [
+        productos,
+        [],
+        [],
+        portada,
+      ]);
 
 export function ProveedorDatos({ children }) {
   const { usuario } = useSesion();
   const [productos, setProductos] = useState([]);
   const [ventas, setVentas] = useState([]);
   const [facturas, setFacturas] = useState([]);
+  // Arranca con los valores por defecto para que el hero pinte desde el
+  // primer frame y no salte cuando llegue la configuración.
+  const [portada, setPortada] = useState(PORTADA_POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [intento, setIntento] = useState(0);
@@ -32,11 +43,12 @@ export function ProveedorDatos({ children }) {
     let vigente = true;
 
     traerTodo(Boolean(usuario))
-      .then(([p, v, f]) => {
+      .then(([p, v, f, portadaGuardada]) => {
         if (!vigente) return;
         setProductos(p);
         setVentas(v);
         setFacturas(f);
+        if (portadaGuardada) setPortada(portadaGuardada);
         setError(null);
         setCargando(false);
       })
@@ -74,6 +86,12 @@ export function ProveedorDatos({ children }) {
     setProductos((lista) => lista.filter((p) => p.id !== id));
   }, []);
 
+  const guardarPortada = useCallback(async (datos) => {
+    const guardada = await guardarPortadaEnFirestore(datos);
+    setPortada(guardada);
+    return guardada;
+  }, []);
+
   const venderCarrito = useCallback(async (datos) => {
     const resultado = await registrarVenta(datos);
     setVentas((lista) => [...resultado.ventas, ...lista]);
@@ -91,11 +109,13 @@ export function ProveedorDatos({ children }) {
       productos,
       ventas,
       facturas,
+      portada,
       cargando,
       error,
       recargar,
       guardarProducto,
       eliminarProducto,
+      guardarPortada,
       venderCarrito,
       setFacturas,
     }),
@@ -103,11 +123,13 @@ export function ProveedorDatos({ children }) {
       productos,
       ventas,
       facturas,
+      portada,
       cargando,
       error,
       recargar,
       guardarProducto,
       eliminarProducto,
+      guardarPortada,
       venderCarrito,
     ],
   );

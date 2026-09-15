@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Imágenes de la portada: las muestra la tienda pública, así que cualquiera
+    // puede leerlas. Subir o borrar exige sesión del panel, y se limita el peso
+    // y el tipo para que nadie use el bucket como almacenamiento general.
+    match /portada/{archivo} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
+    }
+
+    // Todo lo demás queda cerrado.
+    match /{rutas=**} {
+      allow read, write: if false;
+    }
+  }
+}

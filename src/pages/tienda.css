@@ -311,3 +311,27 @@ a.nav__enlace:hover { color: var(--caramelo); }
 .pie__admin:hover { color: var(--caramelo); }
 
 .pieza__marca-agua { opacity: 0.16; }
+
+/* --- Hero en vista previa del panel ---
+   Las medidas del hero dependen de vw y vh, que dentro del panel apuntan a la
+   ventana completa y no al marco. Aquí se fijan tamaños equivalentes a escala,
+   conservando tipografías y colores reales. */
+
+.hero--previa .hero__malla {
+  grid-template-columns: 1.02fr 0.98fr;
+  min-height: 0;
+}
+.hero--previa .hero__texto {
+  order: 1;
+  padding: 26px 20px;
+  justify-content: center;
+}
+.hero--previa .hero__eyebrow { font-size: 7px; letter-spacing: 0.14em; margin-bottom: 10px; }
+.hero--previa .hero__palabra { font-size: 46px; margin-bottom: 6px; }
+.hero--previa .hero__subtitular { font-size: 13px; max-width: 20ch; }
+.hero--previa .hero__parrafo { font-size: 9px; line-height: 1.6; margin-top: 8px; }
+.hero--previa .hero__accion { margin-top: 14px; }
+.hero--previa .hero__accion .boton { padding: 7px 16px; font-size: 8px; }
+.hero--previa .hero__foto { order: 2; height: auto; min-height: 0; aspect-ratio: 3 / 4; }
+.hero--previa .hero__hueco-monograma img { width: 84px; }
+.hero--previa .hero__hueco-nota { left: 12px; bottom: 12px; font-size: 7px; }

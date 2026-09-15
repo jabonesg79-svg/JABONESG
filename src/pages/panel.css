@@ -193,3 +193,56 @@
 }
 .factura-hoja__total strong { font-family: var(--display); font-size: 25px; color: var(--cacao); }
 .factura-hoja__gracias { text-align: center; padding-top: 22px; }
+
+/* --- Portada --- */
+
+.portada {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--hueco);
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .portada { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+  .portada__previa { position: sticky; top: var(--hueco); }
+}
+
+.portada__campos { display: flex; flex-direction: column; gap: 22px; }
+.portada__par { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 620px) { .portada__par { grid-template-columns: 1fr; } }
+
+.portada__confirmacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--salvia);
+  font-size: var(--menudo);
+  margin-bottom: var(--hueco);
+}
+
+.portada__error { color: var(--error); font-size: var(--menudo); }
+
+.portada__imagen {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.portada__miniatura {
+  width: 168px;
+  aspect-ratio: 4 / 5;
+  background: var(--crema);
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.portada__miniatura img { width: 100%; height: 100%; object-fit: cover; }
+.portada__imagen-acciones { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 200px; }
+
+.portada__previa-marco {
+  border: 1px solid var(--beige);
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+}

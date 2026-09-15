@@ -27,6 +27,7 @@ const TRAZOS = {
   etiqueta: "M3 12V4h8l9 9-8 8-9-9zM7.5 7.5h.01",
   balanza: "M12 4v16M6 8h12M6 8l-3 6h6zM18 8l3 6h-6zM8 20h8",
   frasco: "M9 3h6v5l4 9a3 3 0 0 1-3 4H8a3 3 0 0 1-3-4l4-9z",
+  imagen: "M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6",
 };
 
 export default function Icono({ nombre, tam = 20, grosor = 1.7, ...resto }) {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDatos } from "../estado/contextos.js";
+import Hero from "./Hero.jsx";
 import { LINEAS } from "../lib/dominio.js";
 import { money } from "../lib/formato.js";
 import {
@@ -15,10 +16,6 @@ import {
 import { useRevelado } from "../ui/useRevelado.js";
 import "./tienda.css";
 
-/** Foto principal del hero. Vacío mientras no haya material propio:
-    el hueco conserva la proporción para que entre sin tocar el layout. */
-const FOTO_HERO = "";
-
 /** Número de WhatsApp en formato internacional sin signos, por ejemplo
     "573000000000". Vacío = el botón no se renderiza. */
 const WHATSAPP = "";
@@ -30,8 +27,6 @@ const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por Wha
 
 const PAGOS = ["Efectivo", "Transferencia bancaria", "Nequi y Daviplata"];
 
-const VALORES = ["100% naturales", "Hechos a mano", "Ingredientes seleccionados"];
-
 /** Las entradas sin `destino` aún no tienen sección: se muestran, pero no enlazan
     a ninguna parte para no dejar anclas rotas. */
 const NAVEGACION = [
@@ -42,7 +37,7 @@ const NAVEGACION = [
 ];
 
 export default function Tienda() {
-  const { productos, cargando } = useDatos();
+  const { productos, portada, cargando } = useDatos();
   const [busqueda, setBusqueda] = useState("");
   const [linea, setLinea] = useState("todas");
 
@@ -96,41 +91,7 @@ export default function Tienda() {
         </div>
       </header>
 
-      <section className="hero">
-        <div className="hero__malla">
-          <div className="hero__texto">
-            <span className="etiqueta hero__eyebrow">{VALORES.join(" · ")}</span>
-
-            <p className="hero__palabra" aria-hidden="true">
-              jabonesg
-            </p>
-
-            <h1 className="hero__subtitular">jabón hecho a mano, en lotes pequeños</h1>
-
-            <p className="hero__parrafo">
-              Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se
-              empaca una por una.
-            </p>
-
-            <a className="hero__accion" href="#catalogo">
-              <Boton>Ver el catálogo</Boton>
-            </a>
-          </div>
-
-          <div className="hero__foto">
-            {FOTO_HERO ? (
-              <img src={FOTO_HERO} alt="Jabones artesanales de JabonesG recién cortados" />
-            ) : (
-              <div className="hero__hueco">
-                <div className="hero__hueco-monograma">
-                  <LogoImagen variante="monograma" ancho={180} alt="" />
-                </div>
-                <span className="etiqueta hero__hueco-nota">Foto principal</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <Hero portada={portada} />
 
       <section className="seccion--marfil" id="catalogo">
         <div className="contenedor catalogo">

@@ -6,6 +6,7 @@ import "./shell.css";
 
 const SECCIONES = [
   { a: "/panel", icono: "inicio", texto: "Resumen", exacto: true },
+  { a: "/panel/portada", icono: "imagen", texto: "Portada" },
   { a: "/panel/inventario", icono: "inventario", texto: "Inventario" },
   { a: "/panel/ventas", icono: "ventas", texto: "Vender" },
   { a: "/panel/facturas", icono: "facturas", texto: "Facturas" },
