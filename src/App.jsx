@@ -22,10 +22,15 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Tienda />} />
-      <Route
-        path="/acceso"
-        element={cargando ? <Cargando /> : usuario ? <Navigate to="/panel" replace /> : <Acceso />}
-      />
+      {/* /admin es la entrada publicada; /acceso se mantiene para no romper
+          enlaces anteriores. */}
+      {["/admin", "/acceso"].map((ruta) => (
+        <Route
+          key={ruta}
+          path={ruta}
+          element={cargando ? <Cargando /> : usuario ? <Navigate to="/panel" replace /> : <Acceso />}
+        />
+      ))}
       <Route
         path="/panel"
         element={

@@ -30,10 +30,15 @@ const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por Wha
 
 const PAGOS = ["Efectivo", "Transferencia bancaria", "Nequi y Daviplata"];
 
-const VALORES = [
-  { icono: "hoja", texto: "100% naturales" },
-  { icono: "corazon", texto: "Hechos a mano" },
-  { icono: "frasco", texto: "Ingredientes seleccionados" },
+const VALORES = ["100% naturales", "Hechos a mano", "Ingredientes seleccionados"];
+
+/** Las entradas sin `destino` aún no tienen sección: se muestran, pero no enlazan
+    a ninguna parte para no dejar anclas rotas. */
+const NAVEGACION = [
+  { texto: "Catálogo", destino: "#catalogo" },
+  { texto: "Ingredientes", destino: null },
+  { texto: "Nosotros", destino: null },
+  { texto: "Contacto", destino: "#contacto" },
 ];
 
 export default function Tienda() {
@@ -73,31 +78,41 @@ export default function Tienda() {
       <header className="tienda__barra no-imprimir">
         <div className="contenedor">
           <Logotipo compacto />
-          <Link to="/acceso">
-            <Boton variante="contorno" tamano="pequeno" icono="candado">
-              Panel
-            </Boton>
-          </Link>
+
+          <nav className="nav" aria-label="Secciones del sitio">
+            {NAVEGACION.map((item) =>
+              item.destino ? (
+                <a key={item.texto} className="nav__enlace" href={item.destino}>
+                  {item.texto}
+                </a>
+              ) : (
+                // Sin sección todavía: se muestra, pero no enlaza a ninguna parte.
+                <span key={item.texto} className="nav__enlace">
+                  {item.texto}
+                </span>
+              ),
+            )}
+          </nav>
         </div>
       </header>
 
       <section className="hero">
         <div className="hero__malla">
           <div className="hero__texto">
-            <span className="etiqueta">{VALORES.map((v) => v.texto).join(" · ")}</span>
+            <span className="etiqueta hero__eyebrow">{VALORES.join(" · ")}</span>
 
-            <h1 className="hero__titular">
-              jabón hecho a mano,
-              <br />
-              en lotes pequeños
-            </h1>
+            <p className="hero__palabra" aria-hidden="true">
+              jabonesg
+            </p>
 
-            <p>
+            <h1 className="hero__subtitular">jabón hecho a mano, en lotes pequeños</h1>
+
+            <p className="hero__parrafo">
               Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se
               empaca una por una.
             </p>
 
-            <a href="#catalogo">
+            <a className="hero__accion" href="#catalogo">
               <Boton>Ver el catálogo</Boton>
             </a>
           </div>
@@ -107,16 +122,14 @@ export default function Tienda() {
               <img src={FOTO_HERO} alt="Jabones artesanales de JabonesG recién cortados" />
             ) : (
               <div className="hero__hueco">
-                <Monograma tam={72} color="var(--beige)" />
-                <span className="etiqueta">foto principal</span>
+                <div className="hero__hueco-monograma">
+                  <Monograma tam={180} />
+                </div>
+                <span className="etiqueta hero__hueco-nota">Foto principal</span>
               </div>
             )}
           </div>
         </div>
-
-        <span className="hero__palabra" aria-hidden="true">
-          jabonesg
-        </span>
       </section>
 
       <section className="seccion--marfil" id="catalogo">
@@ -204,7 +217,7 @@ export default function Tienda() {
         </div>
       </section>
 
-      <section className="cierre revelar">
+      <section className="cierre revelar" id="contacto">
         <div className="contenedor">
           <p className="script cierre__frase">Bienestar en cada detalle</p>
 
@@ -261,9 +274,14 @@ export default function Tienda() {
             <Icono nombre="corazon" tam={12} />
           </div>
 
-          <p className="pie__nota">
-            JabonesG · jabones artesanales © {new Date().getFullYear()}
-          </p>
+          <div className="pie__cierre">
+            <p className="pie__nota">
+              JabonesG · jabones artesanales © {new Date().getFullYear()}
+            </p>
+            <Link className="pie__admin" to="/admin">
+              Panel
+            </Link>
+          </div>
         </div>
       </footer>
 

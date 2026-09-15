@@ -1,113 +1,157 @@
 .tienda { min-height: 100vh; display: flex; flex-direction: column; background: var(--marfil); }
 
+/* --- Header --- */
+
 .tienda__barra {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--crema) 88%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--marfil);
+  border-bottom: 1px solid var(--beige);
 }
 .tienda__barra .contenedor {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--hueco);
   height: var(--barra);
 }
 
-/* --- Hero: dos columnas, con la palabra display mordida por la foto --- */
+.nav { display: flex; align-items: center; gap: 28px; }
+.nav__enlace {
+  font-family: var(--fuente-texto);
+  font-size: var(--menudo);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--taupe);
+  transition: color var(--transicion);
+}
+a.nav__enlace:hover { color: var(--caramelo); }
+
+@media (max-width: 860px) {
+  .nav { gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav__enlace { font-size: 10.5px; white-space: nowrap; }
+}
+
+/* --- Hero: todo en flujo normal; solo la foto puede tapar la palabra --- */
 
 .hero {
-  position: relative;
   background: var(--crema);
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .hero__malla {
   display: grid;
   grid-template-columns: 1fr;
-  align-items: stretch;
+  align-items: center;
 }
 
 .hero__texto {
-  padding: var(--seccion-corta) 24px var(--hueco-grande);
+  position: relative;
+  z-index: 0;
+  order: 2;
+  padding: var(--hueco-grande) 24px 96px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--hueco);
-  position: relative;
-  z-index: 3;
-  max-width: var(--ancho);
-  margin: 0 auto;
-  width: 100%;
 }
-.hero__titular { margin-top: 4px; }
-.hero__texto p { color: var(--taupe); }
 
-/* La palabra es decorativa: el nombre accesible ya vive en la barra y el h1. */
+.hero__eyebrow { margin-bottom: 24px; }
+
+/* Decorativa: el nombre accesible ya está en el logotipo y en el subtitular. */
 .hero__palabra {
-  display: block;
   font-family: var(--fuente-display);
   font-weight: 400;
-  font-size: var(--display);
-  line-height: 0.82;
-  letter-spacing: var(--tracking-titular);
+  font-size: clamp(56px, 18vw, 80px);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
   color: var(--salvia);
+  text-transform: lowercase;
   white-space: nowrap;
-  position: relative;
-  z-index: 1;
-  padding-left: 24px;
-  margin-bottom: -0.16em;
+  margin: 0;
+  max-width: none;
   pointer-events: none;
   user-select: none;
 }
 
-/* La foto se apoya encima de la palabra y le tapa las últimas letras. */
+.hero__subtitular {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  font-size: clamp(22px, 2.6vw, 36px);
+  line-height: 1.25;
+  letter-spacing: var(--tracking-titular);
+  text-transform: lowercase;
+  color: var(--cacao);
+  margin-top: 28px;
+  max-width: 18ch;
+}
+
+.hero__parrafo {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--taupe);
+  max-width: 38ch;
+  margin-top: 20px;
+}
+
+.hero__accion { margin-top: 36px; }
+
+/* --- Foto a sangre --- */
+
 .hero__foto {
   position: relative;
-  z-index: 2;
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  border-radius: 0;
+  z-index: 1;
+  order: 1;
+  height: 52vh;
   background: var(--crema-honda);
+  border-radius: 0;
+  overflow: hidden;
 }
 .hero__foto img { width: 100%; height: 100%; object-fit: cover; }
-.hero__hueco {
-  width: 100%;
-  height: 100%;
+
+.hero__hueco { position: relative; width: 100%; height: 100%; }
+.hero__hueco-monograma {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  gap: 12px;
-  color: var(--beige);
-  text-align: center;
+  color: var(--taupe);
+  opacity: 0.1;
+}
+.hero__hueco-nota {
+  position: absolute;
+  left: 20px;
+  bottom: 18px;
+  font-size: 10px;
+  opacity: 0.6;
 }
 
 @media (min-width: 861px) {
   .hero__malla {
-    grid-template-columns: 1.02fr 0.98fr;
-    align-items: end;
-    min-height: min(84vh, 760px);
+    grid-template-columns: 1fr 1fr;
+    min-height: 88vh;
   }
   .hero__texto {
-    padding: var(--seccion) 0 var(--seccion-corta) max(24px, calc((100vw - var(--ancho)) / 2));
+    order: 1;
+    padding: 0 64px;
     justify-content: center;
-    margin: 0;
-    max-width: none;
-  }
-  .hero__texto p { max-width: 38ch; }
-
-  /* En escritorio la palabra arranca en la columna de texto y se mete
-     por debajo de la foto: ese solapamiento es la firma del sitio. */
-  .hero__palabra {
-    position: absolute;
-    left: max(24px, calc((100vw - var(--ancho)) / 2));
-    bottom: clamp(24px, 6vh, 72px);
-    margin-bottom: 0;
-    padding-left: 0;
+    padding-bottom: 96px;
+    padding-top: 96px;
   }
   .hero__foto {
-    aspect-ratio: auto;
-    height: min(84vh, 760px);
+    order: 2;
+    height: 100%;
+    min-height: 88vh;
+  }
+
+  /* La palabra se sale de su columna hacia la derecha y la foto la muerde.
+     Sin position absolute: sigue ocupando su sitio en el flujo. */
+  .hero__palabra {
+    font-size: clamp(72px, 11vw, 168px);
+    margin-right: -28vw;
   }
 }
 
@@ -242,3 +286,19 @@
 @media (min-width: 861px) {
   .pie__malla { grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: var(--hueco); }
 }
+
+.pie__cierre {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--hueco);
+  flex-wrap: wrap;
+}
+.pie__admin {
+  font-size: var(--label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--taupe);
+  transition: color var(--transicion);
+}
+.pie__admin:hover { color: var(--caramelo); }
