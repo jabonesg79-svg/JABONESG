@@ -8,12 +8,11 @@ import {
   Buscador,
   Cargando,
   Icono,
-  Insignia,
   Logotipo,
   Monograma,
-  Tarjeta,
   Vacio,
 } from "../ui/index.jsx";
+import { useRevelado } from "../ui/useRevelado.js";
 import "./tienda.css";
 
 /** Foto principal del hero. Vacío mientras no haya material propio:
@@ -53,6 +52,10 @@ export default function Tienda() {
     () => LINEAS.filter((l) => publicados.some((p) => p.linea === l)),
     [publicados],
   );
+
+  // Re-observa cuando cambia lo que se muestra, para que las piezas nuevas
+  // también entren con su animación.
+  useRevelado([cargando, visibles.length, linea]);
 
   return (
     <div className="tienda">
@@ -105,88 +108,90 @@ export default function Tienda() {
         </span>
       </section>
 
-      <div className="contenedor catalogo" id="catalogo">
-        <div className="catalogo__cabecera">
-          <div>
-            <h2 className="catalogo__titulo">Nuestro catálogo</h2>
-            <p className="catalogo__conteo">
-              {visibles.length} {visibles.length === 1 ? "jabón" : "jabones"}
-              {linea !== "todas" ? ` en ${linea.toLowerCase()}` : ""}
-            </p>
+      <section className="seccion--marfil" id="catalogo">
+        <div className="contenedor catalogo">
+          <div className="catalogo__cabecera revelar">
+            <div>
+              <h2>nuestro catálogo</h2>
+              <p className="catalogo__conteo">
+                {visibles.length} {visibles.length === 1 ? "jabón" : "jabones"}
+                {linea !== "todas" ? ` en ${linea.toLowerCase()}` : ""}
+              </p>
+            </div>
+            <div className="catalogo__buscador">
+              <Buscador
+                valor={busqueda}
+                alCambiar={setBusqueda}
+                placeholder="Buscar por nombre o aroma"
+              />
+            </div>
           </div>
-          <div style={{ minWidth: 260, flex: "0 1 340px" }}>
-            <Buscador
-              valor={busqueda}
-              alCambiar={setBusqueda}
-              placeholder="Buscar por nombre o aroma..."
-            />
-          </div>
-        </div>
 
-        {lineasDisponibles.length > 0 && (
-          <div className="chips">
-            <button
-              className={`chip ${linea === "todas" ? "activo" : ""}`}
-              onClick={() => setLinea("todas")}
-            >
-              Todos
-            </button>
-            {lineasDisponibles.map((l) => (
+          {lineasDisponibles.length > 0 && (
+            <div className="chips revelar">
               <button
-                key={l}
-                className={`chip ${linea === l ? "activo" : ""}`}
-                onClick={() => setLinea(l)}
+                className={`chip ${linea === "todas" ? "activo" : ""}`}
+                onClick={() => setLinea("todas")}
               >
-                {l}
+                Todos
               </button>
-            ))}
-          </div>
-        )}
+              {lineasDisponibles.map((l) => (
+                <button
+                  key={l}
+                  className={`chip ${linea === l ? "activo" : ""}`}
+                  onClick={() => setLinea(l)}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {cargando ? (
-          <Cargando texto="sacando los jabones del molde" />
-        ) : visibles.length === 0 ? (
-          <Vacio
-            icono="caja"
-            titulo="Todavía no hay jabones aquí"
-            texto="Pronto publicaremos el próximo lote. Vuelve en unos días."
-          />
-        ) : (
-          <div className="rejilla">
-            {visibles.map((p) => (
-              <Tarjeta key={p.id} className="pieza aparecer">
-                <div className="pieza__foto">
-                  {p.imagen ? (
-                    <img src={p.imagen} alt={p.nombre} loading="lazy" />
-                  ) : (
-                    <Icono nombre="gota" tam={46} grosor={1} />
-                  )}
-                  {Number(p.stock) <= 0 && (
-                    <span className="pieza__marca">
-                      <Insignia tono="peligro">Agotado</Insignia>
-                    </span>
-                  )}
-                  {p.pesoGramos ? <span className="pieza__peso">{p.pesoGramos} g</span> : null}
-                </div>
+          {cargando ? (
+            <Cargando texto="sacando los jabones del molde" />
+          ) : visibles.length === 0 ? (
+            <Vacio
+              icono="caja"
+              titulo="todavía no hay jabones aquí"
+              texto="Pronto publicaremos el próximo lote. Vuelve en unos días."
+            />
+          ) : (
+            <div className="rejilla">
+              {visibles.map((p) => (
+                <article key={p.id} className="pieza revelar">
+                  <div className="pieza__foto">
+                    {p.imagen ? (
+                      <img
+                        src={p.imagen}
+                        alt={`Jabón ${p.nombre}${p.aroma ? `, aroma ${p.aroma.toLowerCase()}` : ""}`}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Monograma tam={44} color="var(--beige)" />
+                    )}
+                  </div>
 
-                <div className="pieza__cuerpo">
                   <div>
-                    <p className="pieza__linea">{p.linea || "Artesanal"}</p>
-                    <p className="pieza__nombre">{p.nombre}</p>
+                    <h3 className="pieza__nombre">{p.nombre}</h3>
+                    <p className="pieza__ingrediente">
+                      {[p.aroma, p.pesoGramos ? `${p.pesoGramos} g` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
                   </div>
-                  <p className="pieza__desc">
-                    {p.descripcion || (p.aroma ? `Aroma ${p.aroma.toLowerCase()}.` : "")}
-                  </p>
-                  <div className="pieza__fila">
+
+                  <p>
                     <span className="pieza__precio">{money(p.precioVenta)}</span>
-                    {Number(p.stock) > 0 && <Insignia tono="salvia">Disponible</Insignia>}
-                  </div>
-                </div>
-              </Tarjeta>
-            ))}
-          </div>
-        )}
-      </div>
+                    {Number(p.stock) <= 0 && (
+                      <span className="etiqueta pieza__agotado">agotado</span>
+                    )}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       <footer className="tienda__pie">
         <div className="contenedor">

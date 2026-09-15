@@ -111,81 +111,95 @@
   }
 }
 
-/* --- Catálogo --- */
-.catalogo { padding: 34px 0 20px; }
+/* --- Catálogo: fichas sin contenedor, sin borde, sin sombra --- */
+
+.catalogo { padding: var(--seccion) 24px; }
+
 .catalogo__cabecera {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--hueco);
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: var(--hueco-grande);
 }
-.catalogo__titulo { font-size: 30px; font-weight: 500; }
-.catalogo__conteo { font-size: 13px; color: var(--taupe); margin-top: 4px; }
+.catalogo__conteo { color: var(--taupe); margin-top: 10px; }
+.catalogo__buscador { width: min(100%, 320px); }
 
-.chips { display: flex; gap: 9px; flex-wrap: wrap; margin: 18px 0 6px; }
+.chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: var(--hueco-grande);
+}
 .chip {
   border: 1px solid var(--taupe);
   background: transparent;
   border-radius: var(--radio-pildora);
-  padding: 7px 16px;
-  font-size: 12.5px;
-  font-weight: 500;
+  padding: 9px 22px;
+  font-size: var(--menudo);
+  font-weight: 400;
+  letter-spacing: var(--tracking-boton);
   color: var(--taupe);
-  transition: all 0.16s ease;
+  transition: background var(--transicion), border-color var(--transicion),
+    color var(--transicion);
 }
-.chip:hover { border-color: var(--caramelo); color: var(--caramelo); }
-.chip.activo { background: var(--cacao); border-color: var(--cacao); color: var(--marfil); }
+.chip:hover { border-color: var(--cacao); color: var(--cacao); }
+.chip.activo { background: var(--salvia); border-color: var(--salvia); color: var(--marfil); }
 
 .rejilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
-  gap: 24px;
-  padding: 20px 0 64px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--hueco-grande) var(--hueco);
 }
 
-.pieza {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.pieza:hover { transform: translateY(-4px); box-shadow: var(--sombra-difusa); }
+/* Una pieza es solo la foto y su texto: sin caja que la encierre. */
+.pieza { display: flex; flex-direction: column; gap: 14px; }
+
 .pieza__foto {
-  aspect-ratio: 5 / 4;
-  background: var(--crema);
+  aspect-ratio: 4 / 5;
+  background: var(--crema-honda);
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
   display: grid;
   place-items: center;
   color: var(--beige);
-  position: relative;
-  overflow: hidden;
 }
-.pieza__foto img { width: 100%; height: 100%; object-fit: cover; }
-.pieza__marca { position: absolute; top: 12px; left: 12px; }
-.pieza__peso {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background: rgba(255, 253, 250, 0.92);
-  border-radius: var(--radio-pildora);
-  padding: 3px 11px;
-  font-size: 11px;
-  font-weight: 600;
+.pieza__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transicion);
+}
+.pieza:hover .pieza__foto img { transform: scale(1.03); }
+
+.pieza__nombre {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.2;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+}
+.pieza__ingrediente {
+  font-size: var(--menudo);
   color: var(--taupe);
+  margin-top: 5px;
+  max-width: none;
 }
-.pieza__cuerpo { padding: 17px 18px 19px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.pieza__linea {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+.pieza__precio {
+  font-family: var(--fuente-display);
+  font-size: 20px;
+  font-weight: 500;
   color: var(--caramelo);
-  font-weight: 600;
 }
-.pieza__nombre { font-family: var(--display); font-size: 19px; font-weight: 500; margin-top: 3px; }
-.pieza__desc { font-size: 13px; color: var(--taupe); font-weight: 300; flex: 1; }
-.pieza__fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.pieza__precio { font-family: var(--display); font-size: 21px; font-weight: 600; color: var(--cacao); }
+.pieza__agotado { margin-left: 10px; }
+
+@media (max-width: 560px) {
+  .rejilla { grid-template-columns: repeat(2, 1fr); gap: var(--hueco) 14px; }
+  .pieza__nombre { font-size: 17px; }
+  .pieza__precio { font-size: 17px; }
+}
 
 /* --- Pie --- */
 .tienda__pie {
