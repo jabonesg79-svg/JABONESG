@@ -77,10 +77,16 @@ export const PORTADA_POR_DEFECTO = {
     "Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se empaca una por una.",
   textoBoton: "Ver el catálogo",
   linkBoton: "/catalogo",
-  imagenUrl: "",
+  imagenData: "",
   imagenAlt: "",
-  imagenRuta: "",
+  imagenPeso: 0,
 };
 
 /** Largo sugerido del párrafo del hero, no impuesto. */
 export const LARGO_PARRAFO_PORTADA = 160;
+
+/* Nota para cuando llegue el turno de las fotos de producto: no las metas en el
+   documento del producto. Un catálogo que trae el base64 de cada foto en cada
+   consulta se vuelve lento enseguida. Van en una colección aparte,
+   `imagenes/{id}`, con este mismo esquema de data URL, y el producto guarda
+   solo el id. Las reglas de esa colección ya están escritas. */

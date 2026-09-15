@@ -15,6 +15,7 @@ import {
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
 import { PORTADA_POR_DEFECTO } from "./dominio.js";
+import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
@@ -134,26 +135,76 @@ export { query, orderBy };
 /* ---------- Portada ---------- */
 
 const PORTADA = ["configuracion", "portada"];
+const CACHE = "jabonesg:portada:v1";
+
+/* La portada lleva la imagen dentro, en base64. Guardarla en sessionStorage
+   evita volver a traer ese peso en cada navegación interna de la pestaña.
+   Si el navegador bloquea el almacenamiento, simplemente no se cachea. */
+const leerCache = () => {
+  try {
+    const guardado = sessionStorage.getItem(CACHE);
+    return guardado ? JSON.parse(guardado) : null;
+  } catch {
+    return null;
+  }
+};
+
+const escribirCache = (datos) => {
+  try {
+    sessionStorage.setItem(CACHE, JSON.stringify(datos));
+  } catch {
+    // Cupo lleno o almacenamiento deshabilitado: seguimos sin caché.
+  }
+};
 
 /**
- * Lee la portada una sola vez. Si el documento no existe, o si la lectura
- * falla, devuelve los valores por defecto: la home tiene que pintar algo
- * siempre, incluso sin configuración y sin conexión.
+ * Lee la portada una sola vez por pestaña. Si el documento no existe, o si la
+ * lectura falla, devuelve los valores por defecto: la home tiene que pintar
+ * algo siempre, incluso sin configuración y sin conexión.
  */
 export async function leerPortada() {
+  const cacheada = leerCache();
+  if (cacheada) return cacheada;
+
   try {
     const snap = await getDoc(doc(db, ...PORTADA));
-    if (!snap.exists()) return { ...PORTADA_POR_DEFECTO };
-    return { ...PORTADA_POR_DEFECTO, ...snap.data() };
+    const datos = snap.exists()
+      ? { ...PORTADA_POR_DEFECTO, ...snap.data() }
+      : { ...PORTADA_POR_DEFECTO };
+    escribirCache(datos);
+    return datos;
   } catch {
     return { ...PORTADA_POR_DEFECTO };
   }
 }
 
+/**
+ * Guarda la portada.
+ *
+ * Antes de escribir comprueba el tamaño del data URL. Si se pasa, aborta sin
+ * tocar el documento: vale más conservar la imagen anterior que dejar la
+ * portada a medias o reventar el límite de 1 MB por documento de Firestore.
+ */
 export async function guardarPortada(datos) {
+  const imagenData = datos.imagenData || "";
+
+  if (imagenData.length > PESO_MAXIMO_GUARDADO) {
+    throw new Error(
+      `La imagen ocupa ${Math.round(imagenData.length / 1024)} KB y el máximo son ` +
+        `${Math.round(PESO_MAXIMO_GUARDADO / 1024)} KB. No se guardó nada: la portada ` +
+        "conserva la imagen anterior.",
+    );
+  }
+
   const limpio = Object.fromEntries(
-    Object.keys(PORTADA_POR_DEFECTO).map((clave) => [clave, datos[clave] ?? PORTADA_POR_DEFECTO[clave]]),
+    Object.keys(PORTADA_POR_DEFECTO).map((clave) => [
+      clave,
+      datos[clave] ?? PORTADA_POR_DEFECTO[clave],
+    ]),
   );
+  limpio.imagenPeso = imagenData.length;
+
   await setDoc(doc(db, ...PORTADA), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
+  escribirCache(limpio);
   return limpio;
 }

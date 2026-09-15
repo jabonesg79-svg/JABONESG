@@ -1,11 +1,22 @@
 import { useMemo, useRef, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import { LARGO_PARRAFO_PORTADA, PORTADA_POR_DEFECTO } from "../lib/dominio.js";
-import { PESO_MAXIMO, subirImagenPortada, validarImagen } from "../lib/imagenes.js";
+import {
+  PESO_MAXIMO_GUARDADO,
+  comprimirImagen,
+  enKB,
+  validarImagen,
+  validarUrlImagen,
+} from "../lib/imagenes.js";
 import { Area, Boton, Campo, Icono, Tarjeta } from "../ui/index.jsx";
 import { useAviso } from "../ui/contextoAvisos.js";
 import Hero from "./Hero.jsx";
 import "./panel.css";
+
+const MODOS = [
+  { id: "archivo", texto: "Subir archivo" },
+  { id: "url", texto: "Pegar URL" },
+];
 
 export default function Portada() {
   const { portada, guardarPortada } = useDatos();
@@ -15,9 +26,12 @@ export default function Portada() {
   // Shell no monta esta página hasta que los datos están cargados, así que
   // `portada` ya trae lo guardado y el formulario puede partir de ahí.
   const [form, setForm] = useState(portada);
+  const [modo, setModo] = useState("archivo");
+  const [url, setUrl] = useState("");
   const [guardando, setGuardando] = useState(false);
-  const [subiendo, setSubiendo] = useState(false);
+  const [procesando, setProcesando] = useState(false);
   const [errorImagen, setErrorImagen] = useState("");
+  const [detalle, setDetalle] = useState(null);
   const [guardadoEn, setGuardadoEn] = useState(null);
 
   const campo = (clave) => (e) => {
@@ -31,37 +45,66 @@ export default function Portada() {
   );
 
   const sobranteParrafo = (form.parrafo || "").length - LARGO_PARRAFO_PORTADA;
+  const pesoActual = (form.imagenData || "").length;
+  const margen = PESO_MAXIMO_GUARDADO - pesoActual;
 
-  const elegirImagen = async (e) => {
+  /* ---------- Imagen por archivo ---------- */
+
+  const elegirArchivo = async (e) => {
     const archivo = e.target.files?.[0];
+    e.target.value = "";
     if (!archivo) return;
 
     const problema = validarImagen(archivo);
     if (problema) {
       setErrorImagen(problema);
-      e.target.value = "";
       return;
     }
 
     setErrorImagen("");
-    setSubiendo(true);
+    setProcesando(true);
     try {
-      const { url, ruta, peso } = await subirImagenPortada(archivo, form.imagenRuta);
-      // Se guarda de inmediato: si el usuario cerrara la página ahora, el
-      // archivo ya está en Storage y la portada quedaría apuntando a él.
-      const actualizado = { ...form, imagenUrl: url, imagenRuta: ruta };
-      setForm(actualizado);
-      await guardarPortada(actualizado);
-      setGuardadoEn(new Date());
-      avisar(`Imagen publicada · ${(peso / 1024).toFixed(0)} KB en WebP`, "exito");
+      const resultado = await comprimirImagen(archivo);
+      // Solo queda en el formulario: nada se escribe hasta "Guardar cambios".
+      setForm((f) => ({ ...f, imagenData: resultado.dataUrl, imagenPeso: resultado.peso }));
+      setDetalle(resultado);
+      setGuardadoEn(null);
+      avisar(`Imagen lista · ${enKB(resultado.peso)}. Falta guardar.`, "neutro");
     } catch (err) {
       setErrorImagen(err.message);
-      avisar("No pudimos subir la imagen", "peligro");
     } finally {
-      setSubiendo(false);
-      e.target.value = "";
+      setProcesando(false);
     }
   };
+
+  /* ---------- Imagen por URL ---------- */
+
+  const usarUrl = async () => {
+    setErrorImagen("");
+    setProcesando(true);
+    try {
+      const problema = await validarUrlImagen(url);
+      if (problema) {
+        setErrorImagen(problema);
+        return;
+      }
+      setForm((f) => ({ ...f, imagenData: url.trim(), imagenPeso: url.trim().length }));
+      setDetalle(null);
+      setGuardadoEn(null);
+      avisar("Imagen enlazada. Falta guardar.", "neutro");
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const quitarImagen = () => {
+    setForm((f) => ({ ...f, imagenData: "", imagenPeso: 0, imagenAlt: "" }));
+    setDetalle(null);
+    setUrl("");
+    setGuardadoEn(null);
+  };
+
+  /* ---------- Guardado ---------- */
 
   const guardar = async () => {
     setGuardando(true);
@@ -70,15 +113,21 @@ export default function Portada() {
       setGuardadoEn(new Date());
       avisar("Portada actualizada", "exito");
     } catch (err) {
-      avisar(`No se pudo guardar: ${err.message}`, "peligro");
+      setErrorImagen(err.message);
+      avisar("No se pudo guardar", "peligro");
     } finally {
       setGuardando(false);
     }
   };
 
   const restaurar = () => {
-    // Se conserva la imagen: restaurar textos no debería borrar una foto subida.
-    setForm({ ...PORTADA_POR_DEFECTO, imagenUrl: form.imagenUrl, imagenRuta: form.imagenRuta, imagenAlt: form.imagenAlt });
+    // Se conserva la imagen: restaurar textos no debería borrar una foto puesta.
+    setForm({
+      ...PORTADA_POR_DEFECTO,
+      imagenData: form.imagenData,
+      imagenPeso: form.imagenPeso,
+      imagenAlt: form.imagenAlt,
+    });
     setGuardadoEn(null);
     avisar("Textos por defecto cargados. Falta guardar.", "neutro");
   };
@@ -103,7 +152,8 @@ export default function Portada() {
       {guardadoEn && !hayCambios && (
         <p className="portada__confirmacion">
           <Icono nombre="chequeo" tam={14} grosor={2.2} />
-          Publicado a las {guardadoEn.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+          Publicado a las{" "}
+          {guardadoEn.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
         </p>
       )}
 
@@ -121,11 +171,7 @@ export default function Portada() {
               pista="Se muestra en mayúsculas"
             />
             <Campo etiqueta="Palabra de marca" value={form.marca || ""} onChange={campo("marca")} />
-            <Campo
-              etiqueta="Subtítulo"
-              value={form.subtitulo || ""}
-              onChange={campo("subtitulo")}
-            />
+            <Campo etiqueta="Subtítulo" value={form.subtitulo || ""} onChange={campo("subtitulo")} />
 
             <Area
               etiqueta="Párrafo"
@@ -155,35 +201,83 @@ export default function Portada() {
 
           <div className="bloque__cabecera">
             <h2 className="bloque__titulo">Imagen</h2>
+            <span className="etiqueta">
+              {pesoActual ? `${enKB(pesoActual)} · quedan ${enKB(margen)}` : "Sin imagen"}
+            </span>
           </div>
 
           <div className="bloque__cuerpo--aire portada__campos">
+            <div className="chips" style={{ marginBottom: 0 }}>
+              {MODOS.map((m) => (
+                <button
+                  key={m.id}
+                  className={`chip ${modo === m.id ? "activo" : ""}`}
+                  onClick={() => {
+                    setModo(m.id);
+                    setErrorImagen("");
+                  }}
+                >
+                  {m.texto}
+                </button>
+              ))}
+            </div>
+
             <div className="portada__imagen">
               <div className="portada__miniatura">
-                {form.imagenUrl ? (
-                  <img src={form.imagenUrl} alt={form.imagenAlt || "Imagen actual de la portada"} />
+                {form.imagenData ? (
+                  <img src={form.imagenData} alt={form.imagenAlt || "Imagen actual de la portada"} />
                 ) : (
                   <span className="etiqueta">Sin imagen</span>
                 )}
               </div>
 
               <div className="portada__imagen-acciones">
-                <Boton
-                  variante="contorno"
-                  onClick={() => archivoRef.current?.click()}
-                  disabled={subiendo}
-                  icono="imagen"
-                >
-                  {subiendo
-                    ? "Subiendo..."
-                    : form.imagenUrl
-                      ? "Reemplazar imagen"
-                      : "Subir imagen"}
-                </Boton>
-                <p className="campo__pista">
-                  JPG, PNG o WebP · máximo {PESO_MAXIMO / 1024 / 1024} MB. Se convierte a WebP
-                  antes de publicarse y la anterior se borra.
-                </p>
+                {modo === "archivo" ? (
+                  <>
+                    <Boton
+                      variante="contorno"
+                      onClick={() => archivoRef.current?.click()}
+                      disabled={procesando}
+                      icono="imagen"
+                    >
+                      {procesando
+                        ? "Comprimiendo..."
+                        : form.imagenData
+                          ? "Reemplazar imagen"
+                          : "Subir imagen"}
+                    </Boton>
+                    <p className="campo__pista">
+                      JPG, PNG o WebP · máximo 4 MB de entrada. Se comprime a WebP en tu
+                      navegador y se guarda dentro del documento, sin usar Storage.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Campo
+                      etiqueta="URL de la imagen"
+                      placeholder="https://..."
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                    />
+                    <Boton variante="contorno" onClick={usarUrl} disabled={procesando}>
+                      {procesando ? "Comprobando..." : "Usar esta URL"}
+                    </Boton>
+                  </>
+                )}
+
+                {detalle && (
+                  <p className="campo__pista">
+                    {detalle.ancho}×{detalle.alto} px · calidad {detalle.calidad} ·{" "}
+                    {detalle.tipo.replace("image/", "").toUpperCase()} · {enKB(detalle.peso)}
+                  </p>
+                )}
+
+                {form.imagenData && (
+                  <Boton variante="fantasma" tamano="pequeno" onClick={quitarImagen} icono="basura">
+                    Quitar imagen
+                  </Boton>
+                )}
+
                 {errorImagen && <p className="portada__error">{errorImagen}</p>}
               </div>
 
@@ -191,7 +285,7 @@ export default function Portada() {
                 ref={archivoRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={elegirImagen}
+                onChange={elegirArchivo}
                 className="sr-solo"
               />
             </div>

@@ -17,7 +17,8 @@ export default function Hero({ portada = PORTADA_POR_DEFECTO, comoVistaPrevia = 
   const parrafo = portada.parrafo?.trim() || d.parrafo;
   const textoBoton = portada.textoBoton?.trim() || d.textoBoton;
   const linkBoton = portada.linkBoton?.trim() || d.linkBoton;
-  const imagenUrl = portada.imagenUrl?.trim();
+  // Sirve igual una data URL guardada en Firestore que un enlace externo.
+  const imagen = portada.imagenData?.trim();
 
   return (
     <section className={`hero ${comoVistaPrevia ? "hero--previa" : ""}`}>
@@ -44,10 +45,12 @@ export default function Hero({ portada = PORTADA_POR_DEFECTO, comoVistaPrevia = 
         </div>
 
         <div className="hero__foto">
-          {imagenUrl ? (
+          {imagen ? (
             <img
-              src={imagenUrl}
+              src={imagen}
               alt={portada.imagenAlt?.trim() || "Jabones artesanales de JabonesG"}
+              loading="eager"
+              fetchPriority="high"
             />
           ) : (
             <div className="hero__hueco">
