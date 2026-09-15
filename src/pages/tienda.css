@@ -58,7 +58,9 @@ a.nav__enlace:hover { color: var(--caramelo); }
   align-items: flex-start;
 }
 
-.hero__eyebrow { margin-bottom: 24px; }
+/* La etiqueta conserva el tracking y el tamaño, pero respeta las
+   mayúsculas y minúsculas que se escriban en el panel. */
+.hero__eyebrow.etiqueta { margin-bottom: 24px; text-transform: none; }
 
 /* Decorativa: el nombre accesible ya está en el logotipo y en el subtitular. */
 .hero__palabra {
@@ -68,7 +70,8 @@ a.nav__enlace:hover { color: var(--caramelo); }
   line-height: 0.95;
   letter-spacing: -0.03em;
   color: var(--salvia);
-  text-transform: lowercase;
+  /* Sin text-transform: lo que se escribe en el panel es lo que se ve. */
+  text-transform: none;
   white-space: nowrap;
   margin: 0 0 20px;
   /* La "j" y la "g" bajan por debajo de la línea base: este colchón evita
@@ -85,7 +88,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   font-size: clamp(24px, 2.4vw, 34px);
   line-height: 1.3;
   letter-spacing: var(--tracking-titular);
-  text-transform: lowercase;
+  text-transform: none;
   color: var(--cacao);
   margin-top: 0;
   max-width: 18ch;
@@ -229,7 +232,8 @@ a.nav__enlace:hover { color: var(--caramelo); }
   font-weight: 400;
   font-size: 20px;
   line-height: 1.2;
-  text-transform: lowercase;
+  /* El nombre sale tal como se escribió en Inventario. */
+  text-transform: none;
   letter-spacing: -0.01em;
 }
 .pieza__ingrediente {
@@ -326,7 +330,12 @@ a.nav__enlace:hover { color: var(--caramelo); }
   padding: 26px 20px;
   justify-content: center;
 }
-.hero--previa .hero__eyebrow { font-size: 7px; letter-spacing: 0.14em; margin-bottom: 10px; }
+.hero--previa .hero__eyebrow.etiqueta {
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  margin-bottom: 10px;
+  text-transform: none;
+}
 .hero--previa .hero__palabra { font-size: 46px; margin-bottom: 6px; }
 .hero--previa .hero__subtitular { font-size: 13px; max-width: 20ch; }
 .hero--previa .hero__parrafo { font-size: 9px; line-height: 1.6; margin-top: 8px; }
