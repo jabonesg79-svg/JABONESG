@@ -29,3 +29,6 @@ dist-ssr
 *.sw?
 .firebase/
 firebase-debug.log
+
+# Material de referencia, no se publica
+referencias/
