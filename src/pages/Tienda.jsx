@@ -9,7 +9,7 @@ import {
   Cargando,
   Icono,
   Logotipo,
-  Monograma,
+  LogoImagen,
   Vacio,
 } from "../ui/index.jsx";
 import { useRevelado } from "../ui/useRevelado.js";
@@ -123,7 +123,7 @@ export default function Tienda() {
             ) : (
               <div className="hero__hueco">
                 <div className="hero__hueco-monograma">
-                  <Monograma tam={180} />
+                  <LogoImagen variante="monograma" ancho={300} alt="" />
                 </div>
                 <span className="etiqueta hero__hueco-nota">Foto principal</span>
               </div>
@@ -191,7 +191,7 @@ export default function Tienda() {
                         loading="lazy"
                       />
                     ) : (
-                      <Monograma tam={44} color="var(--beige)" />
+                      <LogoImagen variante="monograma" ancho={104} className="pieza__marca-agua" alt="" />
                     )}
                   </div>
 
@@ -238,7 +238,7 @@ export default function Tienda() {
         <div className="contenedor">
           <div className="pie__malla">
             <div className="pie__bloque">
-              <Logotipo compacto />
+              <LogoImagen variante="completo" ancho={232} />
               <p>Jabones artesanales hechos a mano, en lotes pequeños.</p>
             </div>
 

@@ -5,7 +5,7 @@ import { AvisosCtx } from "./contextoAvisos.js";
 import "./ui.css";
 
 export { default as Icono } from "./Icono.jsx";
-export { Logotipo, Monograma, Onda, Rama } from "./Marca.jsx";
+export { LogoImagen, Logotipo, Monograma, Onda, Rama } from "./Marca.jsx";
 
 export function Boton({ variante = "primario", tamano, bloque, icono, children, ...resto }) {
   const clases = [

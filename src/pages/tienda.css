@@ -302,3 +302,5 @@ a.nav__enlace:hover { color: var(--caramelo); }
   transition: color var(--transicion);
 }
 .pie__admin:hover { color: var(--caramelo); }
+
+.pieza__marca-agua { opacity: 0.16; }

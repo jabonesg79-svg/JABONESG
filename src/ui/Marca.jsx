@@ -40,14 +40,51 @@ export function Monograma({ tam = 44, color = "currentColor" }) {
   );
 }
 
+/**
+ * Logo real de la marca, recortado y optimizado por scripts/preparar-marca.mjs.
+ * Viene en cacao sólido con fondo transparente, así que sirve sobre marfil y
+ * sobre crema, pero no sobre el cacao del panel: ahí se usa el trazo en SVG.
+ */
+export function LogoImagen({
+  variante = "monograma",
+  alto,
+  ancho,
+  className,
+  style,
+  alt = "JabonesG, jabones artesanales hechos con amor",
+}) {
+  const archivos = {
+    monograma: { src: "/marca/monograma.webp", ratio: 1012 / 494 },
+    completo: { src: "/marca/logo-completo.webp", ratio: 1424 / 736 },
+  };
+  const { src, ratio } = archivos[variante] || archivos.monograma;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      width={ancho || (alto ? Math.round(alto * ratio) : undefined)}
+      height={alto || (ancho ? Math.round(ancho / ratio) : undefined)}
+      style={{ height: alto ? `${alto}px` : undefined, width: ancho ? `${ancho}px` : "auto", ...style }}
+    />
+  );
+}
+
 export function Logotipo({ tono = "cacao", compacto = false }) {
   const color = tono === "claro" ? "var(--marfil)" : "var(--cacao)";
-  const suave = tono === "claro" ? "rgba(248,244,239,0.72)" : "var(--taupe)";
+  const suave =
+    tono === "claro" ? "color-mix(in srgb, var(--marfil) 72%, transparent)" : "var(--taupe)";
   const acento = tono === "claro" ? "var(--beige)" : "var(--caramelo)";
 
   return (
     <div className="logotipo" style={{ color }}>
-      <Monograma tam={compacto ? 38 : 46} />
+      {/* Sobre fondo oscuro el logo en cacao no se lee: ahí va el trazo claro. */}
+      {tono === "claro" ? (
+        <Monograma tam={compacto ? 38 : 46} />
+      ) : (
+        <LogoImagen variante="monograma" alto={compacto ? 40 : 48} alt="" />
+      )}
       <div>
         <p className="logotipo__nombre">JabonesG</p>
         {compacto ? (
