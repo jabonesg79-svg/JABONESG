@@ -17,7 +17,9 @@ import { DatosCtx, useSesion } from "./contextos.js";
     el panel carga además ventas y facturas. */
 const traerTodo = (hayUsuario) =>
   hayUsuario
-    ? Promise.all([leerProductos(), leerVentas(), leerFacturas(), leerPortada()])
+    ? // En el panel se lee siempre del servidor: quien edita debe ver el
+      // documento real, no una copia guardada en la pestaña.
+      Promise.all([leerProductos(), leerVentas(), leerFacturas(), leerPortada({ sinCache: true })])
     : Promise.all([leerProductos(), leerPortada()]).then(([productos, portada]) => [
         productos,
         [],

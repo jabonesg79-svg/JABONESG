@@ -135,15 +135,23 @@ export { query, orderBy };
 /* ---------- Portada ---------- */
 
 const PORTADA = ["configuracion", "portada"];
-const CACHE = "jabonesg:portada:v1";
+const CACHE = "jabonesg:portada:v2";
 
 /* La portada lleva la imagen dentro, en base64. Guardarla en sessionStorage
    evita volver a traer ese peso en cada navegación interna de la pestaña.
-   Si el navegador bloquea el almacenamiento, simplemente no se cachea. */
+
+   La caché caduca: sin caducidad, una pestaña que cargó la tienda antes de un
+   cambio seguiría mostrando lo viejo para siempre, y parecería que el panel no
+   guardó nada. Diez minutos cubren la navegación interna sin congelar la vista. */
+const VIDA_CACHE = 10 * 60 * 1000;
+
 const leerCache = () => {
   try {
     const guardado = sessionStorage.getItem(CACHE);
-    return guardado ? JSON.parse(guardado) : null;
+    if (!guardado) return null;
+    const { datos, momento } = JSON.parse(guardado);
+    if (Date.now() - momento > VIDA_CACHE) return null;
+    return datos;
   } catch {
     return null;
   }
@@ -151,20 +159,33 @@ const leerCache = () => {
 
 const escribirCache = (datos) => {
   try {
-    sessionStorage.setItem(CACHE, JSON.stringify(datos));
+    sessionStorage.setItem(CACHE, JSON.stringify({ datos, momento: Date.now() }));
   } catch {
     // Cupo lleno o almacenamiento deshabilitado: seguimos sin caché.
   }
 };
 
+export const olvidarPortadaCacheada = () => {
+  try {
+    sessionStorage.removeItem(CACHE);
+  } catch {
+    // Nada que hacer: si no se puede escribir, tampoco había caché.
+  }
+};
+
 /**
- * Lee la portada una sola vez por pestaña. Si el documento no existe, o si la
- * lectura falla, devuelve los valores por defecto: la home tiene que pintar
- * algo siempre, incluso sin configuración y sin conexión.
+ * Lee la portada. Si el documento no existe, o si la lectura falla, devuelve
+ * los valores por defecto: la home tiene que pintar algo siempre, incluso sin
+ * configuración y sin conexión.
+ *
+ * `sinCache` fuerza la ida a Firestore. El panel siempre lo usa: quien está
+ * editando tiene que ver lo que hay de verdad, nunca una copia guardada.
  */
-export async function leerPortada() {
-  const cacheada = leerCache();
-  if (cacheada) return cacheada;
+export async function leerPortada({ sinCache = false } = {}) {
+  if (!sinCache) {
+    const cacheada = leerCache();
+    if (cacheada) return cacheada;
+  }
 
   try {
     const snap = await getDoc(doc(db, ...PORTADA));
@@ -173,13 +194,15 @@ export async function leerPortada() {
       : { ...PORTADA_POR_DEFECTO };
     escribirCache(datos);
     return datos;
-  } catch {
+  } catch (error) {
+    console.error("[portada] no se pudo leer la configuración", error);
     return { ...PORTADA_POR_DEFECTO };
   }
 }
 
 /**
- * Guarda la portada.
+ * Guarda la portada y devuelve lo que realmente quedó en Firestore, releído
+ * desde el servidor. Así el formulario refleja el documento, no la intención.
  *
  * Antes de escribir comprueba el tamaño del data URL. Si se pasa, aborta sin
  * tocar el documento: vale más conservar la imagen anterior que dejar la
@@ -187,6 +210,11 @@ export async function leerPortada() {
  */
 export async function guardarPortada(datos) {
   const imagenData = datos.imagenData || "";
+
+  console.log(
+    `[portada] guardando · imagenData ${Math.round(imagenData.length / 1024)} KB ` +
+      `(${imagenData.length} caracteres) · tope ${Math.round(PESO_MAXIMO_GUARDADO / 1024)} KB`,
+  );
 
   if (imagenData.length > PESO_MAXIMO_GUARDADO) {
     throw new Error(
@@ -205,6 +233,10 @@ export async function guardarPortada(datos) {
   limpio.imagenPeso = imagenData.length;
 
   await setDoc(doc(db, ...PORTADA), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
-  escribirCache(limpio);
-  return limpio;
+
+  // Releer confirma que quedó escrito y deja la caché al día en un solo paso.
+  olvidarPortadaCacheada();
+  const confirmado = await leerPortada({ sinCache: true });
+  console.log("[portada] guardado y releído desde Firestore", confirmado);
+  return confirmado;
 }

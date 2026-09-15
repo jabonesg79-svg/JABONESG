@@ -33,10 +33,12 @@ export default function Portada() {
   const [errorImagen, setErrorImagen] = useState("");
   const [detalle, setDetalle] = useState(null);
   const [guardadoEn, setGuardadoEn] = useState(null);
+  const [errorGuardado, setErrorGuardado] = useState(null);
 
   const campo = (clave) => (e) => {
     setForm((f) => ({ ...f, [clave]: e.target.value }));
     setGuardadoEn(null);
+    setErrorGuardado(null);
   };
 
   const hayCambios = useMemo(
@@ -107,15 +109,32 @@ export default function Portada() {
   /* ---------- Guardado ---------- */
 
   const guardar = async () => {
+    console.log("[portada] click en Guardar cambios", {
+      hayCambios,
+      pesoImagen: (form.imagenData || "").length,
+      campos: Object.keys(form),
+    });
+
+    setErrorGuardado(null);
     setGuardando(true);
     try {
-      await guardarPortada(form);
+      // Devuelve el documento releído desde Firestore, no lo que enviamos:
+      // si algo no quedó escrito, se ve de inmediato en el formulario.
+      const confirmado = await guardarPortada(form);
+      setForm(confirmado);
       setGuardadoEn(new Date());
       avisar("Portada actualizada", "exito");
     } catch (err) {
-      setErrorImagen(err.message);
+      // El objeto completo a consola, y en pantalla el código y el mensaje
+      // reales de Firebase: un "Error al guardar" genérico no sirve para nada.
+      console.error("[portada] falló el guardado", err);
+      setErrorGuardado({
+        code: err?.code || "sin-codigo",
+        message: err?.message || String(err),
+      });
       avisar("No se pudo guardar", "peligro");
     } finally {
+      // Pase lo que pase, el botón sale del estado de carga.
       setGuardando(false);
     }
   };
@@ -149,11 +168,28 @@ export default function Portada() {
         </div>
       </header>
 
-      {guardadoEn && !hayCambios && (
+      {errorGuardado && (
+        <div className="portada__fallo">
+          <p>
+            <Icono nombre="alerta" tam={14} grosor={2.2} /> No se guardó
+          </p>
+          <p className="portada__fallo-codigo">{errorGuardado.code}</p>
+          <p>{errorGuardado.message}</p>
+        </div>
+      )}
+
+      {guardadoEn && !hayCambios && !errorGuardado && (
         <p className="portada__confirmacion">
           <Icono nombre="chequeo" tam={14} grosor={2.2} />
           Publicado a las{" "}
           {guardadoEn.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
+
+      {!hayCambios && !guardadoEn && (
+        // Sin esto, el botón deshabilitado parece un botón roto.
+        <p className="portada__sin-cambios">
+          Todo lo que ves aquí ya está publicado. Cambia algo para poder guardar.
         </p>
       )}
 

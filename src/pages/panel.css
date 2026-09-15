@@ -246,3 +246,24 @@
   border-radius: var(--radio-imagen);
   overflow: hidden;
 }
+
+.portada__fallo {
+  background: var(--error-velo);
+  border-radius: var(--radio-imagen);
+  padding: 14px 18px;
+  margin-bottom: var(--hueco);
+  color: var(--error);
+  font-size: var(--menudo);
+}
+.portada__fallo p { max-width: none; }
+.portada__fallo p:first-child { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.portada__fallo-codigo {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  letter-spacing: 0.02em;
+  margin: 4px 0;
+}
+.portada__sin-cambios {
+  font-size: var(--menudo);
+  color: var(--taupe);
+  margin-bottom: var(--hueco);
+}
