@@ -45,9 +45,9 @@
 .acceso__sub { color: var(--taupe); font-size: 14px; margin-top: 7px; margin-bottom: 28px; font-weight: 300; }
 .acceso__campos { display: flex; flex-direction: column; gap: 17px; }
 .acceso__error {
-  background: var(--peligro-suave);
-  color: var(--peligro);
-  border-radius: var(--r-md);
+  background: var(--error-velo);
+  color: var(--error);
+  border-radius: var(--radio-imagen);
   padding: 12px 15px;
   font-size: 13.5px;
   font-weight: 500;

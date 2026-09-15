@@ -10,12 +10,15 @@ import {
   Icono,
   Insignia,
   Logotipo,
-  Onda,
-  Rama,
+  Monograma,
   Tarjeta,
   Vacio,
 } from "../ui/index.jsx";
 import "./tienda.css";
+
+/** Foto principal del hero. Vacío mientras no haya material propio:
+    el hueco conserva la proporción para que entre sin tocar el layout. */
+const FOTO_HERO = "";
 
 const VALORES = [
   { icono: "hoja", texto: "100% naturales" },
@@ -64,38 +67,45 @@ export default function Tienda() {
         </div>
       </header>
 
-      <section className="portada">
-        <Rama tam={190} className="portada__rama portada__rama--izq" />
-        <Rama tam={150} className="portada__rama portada__rama--der" />
+      <section className="hero">
+        <div className="hero__malla">
+          <div className="hero__texto">
+            <span className="etiqueta">{VALORES.map((v) => v.texto).join(" · ")}</span>
 
-        <div className="contenedor portada__inner">
-          <span className="portada__sello">
-            <Icono nombre="hoja" tam={13} />
-            {publicados.length} jabones en catálogo
-          </span>
+            <h1 className="hero__titular">
+              jabón hecho a mano,
+              <br />
+              en lotes pequeños
+            </h1>
 
-          <h1 className="portada__titulo">Jabones artesanales</h1>
-          <p className="script portada__firma">hechos con amor</p>
+            <p>
+              Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se
+              empaca una por una.
+            </p>
 
-          <p className="portada__texto">
-            Lotes pequeños, aceites vegetales y aromas naturales. Cada barra se corta, se cura y
-            se empaca a mano, una por una.
-          </p>
+            <a href="#catalogo">
+              <Boton>Ver el catálogo</Boton>
+            </a>
+          </div>
 
-          <div className="portada__valores">
-            {VALORES.map((v) => (
-              <span key={v.texto}>
-                <Icono nombre={v.icono} tam={14} />
-                {v.texto}
-              </span>
-            ))}
+          <div className="hero__foto">
+            {FOTO_HERO ? (
+              <img src={FOTO_HERO} alt="Jabones artesanales de JabonesG recién cortados" />
+            ) : (
+              <div className="hero__hueco">
+                <Monograma tam={72} color="var(--beige)" />
+                <span className="etiqueta">foto principal</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <Onda color="var(--marfil)" alto={52} />
+        <span className="hero__palabra" aria-hidden="true">
+          jabonesg
+        </span>
       </section>
 
-      <div className="contenedor catalogo">
+      <div className="contenedor catalogo" id="catalogo">
         <div className="catalogo__cabecera">
           <div>
             <h2 className="catalogo__titulo">Nuestro catálogo</h2>

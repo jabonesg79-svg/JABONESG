@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 
-/**
+/** El prefijo `use` lo exige la regla de hooks de React; el resto del código sigue en español.
+ *
  * Revela los elementos marcados con la clase `revelar` cuando entran en pantalla.
  * Cada elemento se anima una sola vez: al revelarse deja de observarse.
  *
  * Se apoya en una clase CSS en vez de estado de React para no re-renderizar
  * la lista completa en cada scroll.
  */
-export function usarRevelado(dependencias = []) {
+export function useRevelado(dependencias = []) {
   useEffect(() => {
     const objetivos = document.querySelectorAll(".revelar:not(.visible)");
     if (objetivos.length === 0) return undefined;
