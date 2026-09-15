@@ -19,6 +19,17 @@ import "./tienda.css";
     el hueco conserva la proporción para que entre sin tocar el layout. */
 const FOTO_HERO = "";
 
+/** Número de WhatsApp en formato internacional sin signos, por ejemplo
+    "573000000000". Vacío = el botón no se renderiza. */
+const WHATSAPP = "";
+
+/** Enlaces de redes. Vacío mientras no haya cuentas publicadas. */
+const REDES = [];
+
+const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por WhatsApp"];
+
+const PAGOS = ["Efectivo", "Transferencia bancaria", "Nequi y Daviplata"];
+
 const VALORES = [
   { icono: "hoja", texto: "100% naturales" },
   { icono: "corazon", texto: "Hechos a mano" },
@@ -193,20 +204,69 @@ export default function Tienda() {
         </div>
       </section>
 
-      <footer className="tienda__pie">
+      <section className="cierre revelar">
         <div className="contenedor">
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <Logotipo tono="claro" />
+          <p className="script cierre__frase">Bienestar en cada detalle</p>
+
+          {WHATSAPP && (
+            <a
+              className="cierre__boton"
+              href={`https://wa.me/${WHATSAPP}`}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Boton>Escríbenos por WhatsApp</Boton>
+            </a>
+          )}
+        </div>
+      </section>
+
+      <footer className="pie">
+        <div className="contenedor">
+          <div className="pie__malla">
+            <div className="pie__bloque">
+              <Logotipo compacto />
+              <p>Jabones artesanales hechos a mano, en lotes pequeños.</p>
+            </div>
+
+            <div className="pie__bloque">
+              <span className="etiqueta">Síguenos</span>
+              {REDES.length === 0 ? (
+                <p>Pronto por aquí.</p>
+              ) : (
+                REDES.map((r) => (
+                  <a key={r.nombre} href={r.url} target="_blank" rel="noreferrer noopener">
+                    {r.nombre}
+                  </a>
+                ))
+              )}
+            </div>
+
+            <div className="pie__bloque">
+              <span className="etiqueta">Envíos</span>
+              {ENVIOS.map((linea) => (
+                <p key={linea}>{linea}</p>
+              ))}
+            </div>
+
+            <div className="pie__bloque">
+              <span className="etiqueta">Pagos</span>
+              {PAGOS.map((linea) => (
+                <p key={linea}>{linea}</p>
+              ))}
+            </div>
           </div>
-          <div className="filete">
-            <Icono nombre="corazon" tam={13} />
+
+          <div className="divisor pie__divisor">
+            <Icono nombre="corazon" tam={12} />
           </div>
-          <p className="script">Bienestar en cada detalle</p>
-          <p style={{ marginTop: 10 }}>
+
+          <p className="pie__nota">
             JabonesG · jabones artesanales © {new Date().getFullYear()}
           </p>
         </div>
       </footer>
+
     </div>
   );
 }

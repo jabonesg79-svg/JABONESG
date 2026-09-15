@@ -33,10 +33,10 @@
 }
 .metrica__nota { font-size: 12.5px; color: var(--taupe-claro); }
 .metrica--acento { background: var(--cacao); border-color: var(--cacao); }
-.metrica--acento .metrica__etiqueta { color: rgba(248, 244, 239, 0.6); }
+.metrica--acento .metrica__etiqueta { color: color-mix(in srgb, var(--marfil) 60%, transparent); }
 .metrica--acento .metrica__valor { color: var(--marfil); }
-.metrica--acento .metrica__nota { color: rgba(248, 244, 239, 0.55); }
-.metrica--acento .metrica__icono { background: rgba(248, 244, 239, 0.14); color: var(--beige); }
+.metrica--acento .metrica__nota { color: color-mix(in srgb, var(--marfil) 55%, transparent); }
+.metrica--acento .metrica__icono { background: color-mix(in srgb, var(--marfil) 14%, transparent); color: var(--beige); }
 
 .panel-rejilla { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: start; }
 @media (max-width: 1040px) { .panel-rejilla { grid-template-columns: 1fr; } }
@@ -128,7 +128,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 0.16s ease, transform 0.12s ease;
+  transition: border-color var(--transicion), transform var(--transicion);
 }
 .pos__item:hover:not(:disabled) { border-color: var(--caramelo); transform: translateY(-2px); }
 .pos__item:disabled { opacity: 0.45; cursor: not-allowed; }

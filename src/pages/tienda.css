@@ -201,21 +201,44 @@
   .pieza__precio { font-size: 17px; }
 }
 
-/* --- Pie --- */
-.tienda__pie {
-  margin-top: auto;
-  background: var(--cacao);
-  color: var(--marfil);
-  padding: 48px 0 36px;
+/* --- Cierre: banda marfil, frase script y contacto --- */
+
+.cierre {
+  background: var(--marfil);
+  padding: var(--seccion) 24px;
   text-align: center;
 }
-.tienda__pie .filete { color: rgba(248, 244, 239, 0.28); margin: 22px 0 16px; }
-.tienda__pie .script { font-size: 27px; color: var(--beige); }
-.tienda__pie p { font-size: 12.5px; color: rgba(248, 244, 239, 0.62); }
+.cierre__frase {
+  font-size: clamp(38px, 6vw, 68px);
+  color: var(--caramelo);
+  margin-bottom: var(--hueco-grande);
+}
+.cierre__boton { display: inline-flex; }
 
-@media (max-width: 560px) {
-  .rejilla { grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: 15px; }
-  .portada__inner { padding: 40px 0 16px; }
-  .pieza__cuerpo { padding: 13px 14px 15px; }
-  .portada__rama { display: none; }
+/* --- Pie sobrio --- */
+
+.pie {
+  background: var(--crema);
+  padding: var(--seccion-corta) 24px var(--hueco-grande);
+}
+.pie__malla {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--hueco-grande);
+  align-items: start;
+}
+.pie__bloque { display: flex; flex-direction: column; gap: 10px; }
+.pie__bloque p,
+.pie__bloque a {
+  font-size: var(--menudo);
+  color: var(--taupe);
+  max-width: 34ch;
+}
+.pie__bloque a { transition: color var(--transicion); }
+.pie__bloque a:hover { color: var(--cacao); }
+.pie__divisor { margin: var(--hueco-grande) 0 var(--hueco); }
+.pie__nota { font-size: var(--menudo); color: var(--taupe); max-width: none; }
+
+@media (min-width: 861px) {
+  .pie__malla { grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: var(--hueco); }
 }
