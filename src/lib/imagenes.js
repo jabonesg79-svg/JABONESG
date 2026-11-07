@@ -89,11 +89,16 @@ function aDataUrl(blob) {
  */
 export async function comprimirImagen(
   archivo,
-  { maxAncho = ANCHOS[0], calidad = CALIDAD_INICIAL, pesoObjetivo = PESO_MAXIMO_GUARDADO } = {},
+  {
+    maxAncho = ANCHOS[0],
+    calidad = CALIDAD_INICIAL,
+    pesoObjetivo = PESO_MAXIMO_GUARDADO,
+    anchosAlternos = [ANCHOS[1]],
+  } = {},
 ) {
   const img = await cargarImagen(archivo);
   const tipo = soportaWebP() ? "image/webp" : "image/jpeg";
-  const anchos = [maxAncho, ANCHOS[1]].filter((a, i, lista) => lista.indexOf(a) === i);
+  const anchos = [maxAncho, ...anchosAlternos].filter((a, i, lista) => lista.indexOf(a) === i);
 
   const lienzo = document.createElement("canvas");
   const ctx = lienzo.getContext("2d");
@@ -125,6 +130,22 @@ export async function comprimirImagen(
 
   throw new Error(ERROR_MUY_PESADA);
 }
+
+/* ---------- Fotos de producto ---------- */
+
+export const MAX_FOTOS_PRODUCTO = 4;
+
+/** Cada foto va en su propio documento de `imagenes`, así que este tope queda muy
+    por debajo del 1 MB de Firestore. Lo que manda es el peso de la página: el
+    catálogo baja una foto por tarjeta y debe cargar rápido en un celular. */
+export const PESO_FOTO_PRODUCTO = 250000;
+
+export const comprimirFotoProducto = (archivo) =>
+  comprimirImagen(archivo, {
+    maxAncho: 1200,
+    pesoObjetivo: PESO_FOTO_PRODUCTO,
+    anchosAlternos: [900, 700],
+  });
 
 /**
  * Comprueba que una URL pegada sea https y que la imagen cargue de verdad,

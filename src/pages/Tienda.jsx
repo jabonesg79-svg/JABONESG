@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
-import { LINEAS } from "../lib/dominio.js";
+import Ficha from "./Ficha.jsx";
+import { EJEMPLOS } from "../lib/ejemplos.js";
+import {
+  BENEFICIOS,
+  ETIQUETA_ESTADO,
+  estadoTienda,
+  fotosDe,
+  ordenarParaTienda,
+} from "../lib/dominio.js";
 import { enlaceInstagram, enlaceWhatsApp, money, telefonoLegible } from "../lib/formato.js";
 import {
   Boton,
@@ -13,6 +21,7 @@ import {
   Vacio,
 } from "../ui/index.jsx";
 import { useRevelado } from "../ui/useRevelado.js";
+import FotoProducto from "../ui/FotoProducto.jsx";
 import "./tienda.css";
 
 const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por WhatsApp"];
@@ -35,6 +44,11 @@ const EVENTOS = [
   "Detalles empresariales",
 ];
 
+const mensajePedido = (p) =>
+  estadoTienda(p) === "agotado"
+    ? `Hola JabonesG, vi el jabón "${p.nombre}" agotado en la tienda. ¿Cuándo vuelve a estar disponible?`
+    : `Hola JabonesG, quiero pedir el jabón "${p.nombre}" (${money(p.precioVenta)}). ¿Me ayudas con el pedido?`;
+
 const MENSAJE_GENERAL = "Hola JabonesG, quiero información sobre sus jabones.";
 const MENSAJE_EVENTO =
   "Hola JabonesG, quiero cotizar recordatorios de jabón para un evento. Tipo de evento: ___ · Fecha: ___ · Cantidad aproximada: ___";
@@ -42,39 +56,47 @@ const MENSAJE_EVENTO =
 export default function Tienda() {
   const { productos, portada, contacto, cargando } = useDatos();
   const [busqueda, setBusqueda] = useState("");
-  const [linea, setLinea] = useState("todas");
+  const [beneficio, setBeneficio] = useState("todos");
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [detalle, setDetalle] = useState(null);
 
   const whatsapp = enlaceWhatsApp(contacto.whatsapp, MENSAJE_GENERAL);
   const whatsappEvento = enlaceWhatsApp(contacto.whatsapp, MENSAJE_EVENTO);
   const instagram = enlaceInstagram(contacto.instagram);
 
   const publicados = useMemo(
-    () => productos.filter((p) => p.publicado !== false),
+    () => [
+      ...productos.filter((p) => p.publicado !== false),
+      // Muestras solo en desarrollo: nunca llegan a Firestore ni a la tienda publicada.
+      ...(import.meta.env.DEV ? EJEMPLOS : []),
+    ],
     [productos],
   );
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return publicados
-      .filter((p) => (linea === "todas" ? true : p.linea === linea))
-      .filter((p) =>
-        !q
-          ? true
-          : [p.nombre, p.descripcion, p.aroma, p.linea, p.codigo]
-              .filter(Boolean)
-              .some((campo) => String(campo).toLowerCase().includes(q)),
-      );
-  }, [publicados, busqueda, linea]);
+    return ordenarParaTienda(
+      publicados
+        .filter((p) => beneficio === "todos" || p.beneficios?.includes(beneficio))
+        .filter((p) =>
+          !q
+            ? true
+            : [p.nombre, p.descripcion, p.beneficioCorto, p.aroma, p.linea, p.codigo]
+                .filter(Boolean)
+                .some((campo) => String(campo).toLowerCase().includes(q)),
+        ),
+    );
+  }, [publicados, busqueda, beneficio]);
 
-  const lineasDisponibles = useMemo(
-    () => LINEAS.filter((l) => publicados.some((p) => p.linea === l)),
+  // Solo se ofrecen filtros que devuelven algo.
+  const beneficiosDisponibles = useMemo(
+    () => BENEFICIOS.filter((b) => publicados.some((p) => p.beneficios?.includes(b))),
     [publicados],
   );
 
   // Re-observa cuando cambia lo que se muestra, para que las piezas nuevas
   // también entren con su animación.
-  useRevelado([cargando, visibles.length, linea]);
+  useRevelado([cargando, visibles.length, beneficio]);
 
   return (
     <div className="tienda">
@@ -135,7 +157,7 @@ export default function Tienda() {
               <h2 className="seccion-cabecera__titulo">nuestro catálogo</h2>
               <p className="catalogo__conteo">
                 {visibles.length} {visibles.length === 1 ? "jabón" : "jabones"}
-                {linea !== "todas" ? ` en ${linea.toLowerCase()}` : ""}
+                {beneficio !== "todos" ? ` · ${beneficio.toLowerCase()}` : ""}
               </p>
             </div>
             <div className="catalogo__buscador">
@@ -147,21 +169,23 @@ export default function Tienda() {
             </div>
           </div>
 
-          {lineasDisponibles.length > 0 && (
-            <div className="chips revelar">
+          {beneficiosDisponibles.length > 0 && (
+            <div className="chips revelar" role="group" aria-label="Filtrar por beneficio">
               <button
-                className={`chip ${linea === "todas" ? "activo" : ""}`}
-                onClick={() => setLinea("todas")}
+                className={`chip ${beneficio === "todos" ? "activo" : ""}`}
+                aria-pressed={beneficio === "todos"}
+                onClick={() => setBeneficio("todos")}
               >
                 Todos
               </button>
-              {lineasDisponibles.map((l) => (
+              {beneficiosDisponibles.map((b) => (
                 <button
-                  key={l}
-                  className={`chip ${linea === l ? "activo" : ""}`}
-                  onClick={() => setLinea(l)}
+                  key={b}
+                  className={`chip ${beneficio === b ? "activo" : ""}`}
+                  aria-pressed={beneficio === b}
+                  onClick={() => setBeneficio(b)}
                 >
-                  {l}
+                  {b}
                 </button>
               ))}
             </div>
@@ -177,37 +201,68 @@ export default function Tienda() {
             />
           ) : (
             <div className="rejilla">
-              {visibles.map((p) => (
-                <article key={p.id} className="pieza revelar">
-                  <div className="pieza__foto">
-                    {p.imagen ? (
-                      <img
-                        src={p.imagen}
-                        alt={`Jabón ${p.nombre}${p.aroma ? `, aroma ${p.aroma.toLowerCase()}` : ""}`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <LogoImagen variante="monograma" ancho={104} className="pieza__marca-agua" alt="" />
-                    )}
-                  </div>
+              {visibles.map((p) => {
+                const estado = estadoTienda(p);
+                const foto = fotosDe(p)[0];
+                const pedido = enlaceWhatsApp(contacto.whatsapp, mensajePedido(p));
+                return (
+                  <article
+                    key={p.id}
+                    className={`pieza revelar ${estado === "agotado" ? "pieza--agotada" : ""}`}
+                  >
+                    <button
+                      className="pieza__abrir"
+                      onClick={() => setDetalle(p)}
+                      aria-label={`Ver detalle de ${p.nombre}`}
+                    >
+                      <div className="pieza__foto">
+                        {foto ? (
+                          <FotoProducto
+                            src={foto}
+                            alt={`Jabón ${p.nombre}${p.aroma ? `, aroma ${p.aroma.toLowerCase()}` : ""}`}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <LogoImagen
+                            variante="monograma"
+                            ancho={104}
+                            className="pieza__marca-agua"
+                            alt=""
+                          />
+                        )}
+                        <span className={`pieza__estado pieza__estado--${estado}`}>
+                          {ETIQUETA_ESTADO[estado]}
+                        </span>
+                        {p.ejemplo && <span className="pieza__ejemplo">Ejemplo</span>}
+                      </div>
 
-                  <div>
-                    <h3 className="pieza__nombre">{p.nombre}</h3>
-                    <p className="pieza__ingrediente">
-                      {[p.aroma, p.pesoGramos ? `${p.pesoGramos} g` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
+                      <h3 className="pieza__nombre">{p.nombre}</h3>
+                      {(p.beneficioCorto || p.aroma) && (
+                        <p className="pieza__beneficio">{p.beneficioCorto || p.aroma}</p>
+                      )}
+                      <p className="pieza__precio">{money(p.precioVenta)}</p>
+                    </button>
 
-                  <p>
-                    <span className="pieza__precio">{money(p.precioVenta)}</span>
-                    {Number(p.stock) <= 0 && (
-                      <span className="etiqueta pieza__agotado">agotado</span>
+                    {pedido && (
+                      <a
+                        className="pieza__pedir"
+                        href={pedido}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <Icono nombre="whatsapp" tam={16} />
+                        {estado === "agotado" ? (
+                          "Preguntar"
+                        ) : (
+                          <span>
+                            Pedir<span className="pieza__pedir-extra"> por WhatsApp</span>
+                          </span>
+                        )}
+                      </a>
                     )}
-                  </p>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
@@ -303,6 +358,14 @@ export default function Tienda() {
           <p className="pie__nota">JabonesG · jabones artesanales © {new Date().getFullYear()}</p>
         </div>
       </footer>
+
+      {detalle && (
+        <Ficha
+          producto={detalle}
+          enlacePedido={enlaceWhatsApp(contacto.whatsapp, mensajePedido(detalle))}
+          alCerrar={() => setDetalle(null)}
+        />
+      )}
 
       {whatsapp && (
         <a

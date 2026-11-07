@@ -266,17 +266,43 @@ a.nav__enlace:hover { color: var(--caramelo); }
 .chip:hover { border-color: var(--cacao); color: var(--cacao); }
 .chip.activo { background: var(--salvia); border-color: var(--salvia); color: var(--marfil); }
 
+/* Flex centrado en vez de grid: con pocos jabones la fila queda al centro
+   y no recostada a la izquierda con un hueco vacío al lado. */
 .rejilla {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--hueco-grande) var(--hueco);
 }
 
-/* Una pieza es solo la foto y su texto: sin caja que la encierre. */
-.pieza { display: flex; flex-direction: column; gap: 14px; }
+.pieza {
+  flex: 0 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity var(--transicion);
+}
+
+/* Toda la parte de arriba abre la ficha; el pedido va aparte. */
+.pieza__abrir {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.pieza__abrir:focus-visible { outline-offset: 4px; }
 
 .pieza__foto {
+  position: relative;
   aspect-ratio: 4 / 5;
+  margin-bottom: 8px;
   background: var(--crema-honda);
   border-radius: var(--radio-imagen);
   overflow: hidden;
@@ -285,12 +311,38 @@ a.nav__enlace:hover { color: var(--caramelo); }
   color: var(--beige);
 }
 .pieza__foto img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform var(--transicion);
 }
-.pieza:hover .pieza__foto img { transform: scale(1.03); }
+.pieza__abrir:hover .pieza__foto img { transform: scale(1.03); }
+
+.pieza__estado,
+.pieza__ejemplo {
+  position: absolute;
+  top: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radio-pildora);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.pieza__estado { left: 10px; }
+.pieza__estado--disponible { background: var(--marfil); color: var(--salvia-honda); }
+.pieza__estado--nuevo { background: var(--caramelo); color: var(--marfil); }
+.pieza__estado--agotado { background: var(--marfil); color: var(--taupe); }
+/* Abajo, para no chocar con el estado en tarjetas angostas. */
+.pieza__ejemplo {
+  top: auto;
+  bottom: 10px;
+  left: 10px;
+  background: color-mix(in srgb, var(--cacao) 70%, transparent);
+  color: var(--marfil);
+}
 
 .pieza__nombre {
   font-family: var(--fuente-display);
@@ -301,10 +353,10 @@ a.nav__enlace:hover { color: var(--caramelo); }
   text-transform: none;
   letter-spacing: -0.01em;
 }
-.pieza__ingrediente {
-  font-size: var(--menudo);
+.pieza__beneficio {
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--taupe);
-  margin-top: 5px;
   max-width: none;
 }
 .pieza__precio {
@@ -313,12 +365,101 @@ a.nav__enlace:hover { color: var(--caramelo); }
   font-weight: 500;
   color: var(--caramelo);
 }
-.pieza__agotado { margin-left: 10px; }
+
+.pieza__pedir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 11px 16px;
+  border: 1px solid var(--salvia);
+  border-radius: var(--radio-pildora);
+  color: var(--salvia-honda);
+  font-size: var(--menudo);
+  font-weight: 500;
+  letter-spacing: var(--tracking-boton);
+  transition: background var(--transicion), color var(--transicion);
+}
+.pieza__pedir:hover { background: var(--salvia); color: var(--marfil); }
+
+/* Agotado: sigue a la vista, pero sin competir con lo que sí se puede comprar. */
+.pieza--agotada .pieza__foto { filter: grayscale(0.7); opacity: 0.6; }
+.pieza--agotada .pieza__nombre,
+.pieza--agotada .pieza__precio { color: var(--taupe-claro); }
+.pieza--agotada .pieza__pedir { border-color: var(--beige); color: var(--taupe); }
+.pieza--agotada .pieza__pedir:hover { background: var(--crema); color: var(--cacao); }
 
 @media (max-width: 560px) {
-  .rejilla { grid-template-columns: repeat(2, 1fr); gap: var(--hueco) 14px; }
+  .rejilla { gap: var(--hueco) 14px; }
+  .pieza { flex-basis: calc(50% - 7px); }
   .pieza__nombre { font-size: 17px; }
   .pieza__precio { font-size: 17px; }
+  .pieza__beneficio { font-size: 12px; }
+  .pieza__pedir { padding: 10px 8px; font-size: 11px; letter-spacing: 0.02em; }
+  .pieza__pedir-extra { display: none; }
+}
+
+/* --- Ficha de detalle --- */
+
+/* El título del modal sale tal como se escribió el nombre en Inventario. */
+.tienda .modal__titulo { text-transform: none; }
+
+.ficha { display: grid; gap: var(--hueco); }
+.ficha__foto {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-height: 60vh;
+  background: var(--crema-honda);
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.ficha__foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ficha__miniaturas { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.ficha__miniatura {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  background: var(--crema);
+  opacity: 0.6;
+  transition: opacity var(--transicion), border-color var(--transicion);
+}
+.ficha__miniatura img { width: 100%; height: 100%; object-fit: cover; }
+.ficha__miniatura.activa { opacity: 1; border-color: var(--cacao); }
+
+.ficha__texto { display: flex; flex-direction: column; gap: 16px; }
+.ficha__estado { position: static; display: inline-block; margin-left: 12px; vertical-align: middle; border: 1px solid var(--beige); }
+.ficha__lema { font-family: var(--fuente-display); font-size: 19px; line-height: 1.4; color: var(--cacao); }
+.ficha__descripcion { color: var(--taupe); }
+.ficha__beneficios { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.ficha__beneficios li {
+  padding: 5px 12px;
+  border-radius: var(--radio-pildora);
+  background: var(--salvia-velo);
+  color: var(--salvia-honda);
+  font-size: var(--menudo);
+}
+.ficha__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--linea);
+  border-bottom: 1px solid var(--linea);
+}
+.ficha__datos dt { font-size: var(--label); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--taupe); }
+.ficha__datos dd { margin: 2px 0 0; color: var(--cacao); }
+.ficha__bloque p { margin-top: 6px; color: var(--taupe); font-size: 14px; }
+.ficha__pedir { display: block; margin-top: 4px; }
+
+@media (min-width: 761px) {
+  .ficha { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: start; }
 }
 
 /* --- Eventos: banda crema con llamado a cotizar --- */

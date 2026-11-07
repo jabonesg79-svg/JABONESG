@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
-import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO } from "./dominio.js";
+import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO, PREFIJO_IMAGEN } from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -40,6 +40,55 @@ export async function actualizarProducto(id, datos) {
 
 export async function borrarProducto(id) {
   await deleteDoc(doc(db, "productos", id));
+}
+
+/* ---------- Fotos de producto ---------- */
+
+/** Una promesa por id: la misma foto se pide una sola vez por pestaña aunque
+    la muestren la tarjeta, la ficha y el panel. */
+const fotosEnMemoria = new Map();
+
+const idDe = (ref) => ref.slice(PREFIJO_IMAGEN.length);
+
+/** Devuelve el data URL de una referencia "img:<id>", o "" si no existe. */
+export function leerImagen(ref) {
+  const id = idDe(ref);
+  if (!fotosEnMemoria.has(id)) {
+    fotosEnMemoria.set(
+      id,
+      getDoc(doc(db, "imagenes", id))
+        .then((snap) => (snap.exists() ? snap.data().dataUrl || "" : ""))
+        .catch((error) => {
+          // Sin caché del fallo: el próximo intento vuelve a preguntar.
+          fotosEnMemoria.delete(id);
+          console.error("[imagenes] no se pudo leer", id, error);
+          return "";
+        }),
+    );
+  }
+  return fotosEnMemoria.get(id);
+}
+
+export async function guardarImagen(dataUrl) {
+  if (dataUrl.length > PESO_MAXIMO_GUARDADO) {
+    throw new Error(
+      `La foto ocupa ${Math.round(dataUrl.length / 1024)} KB y el máximo por documento son ` +
+        `${Math.round(PESO_MAXIMO_GUARDADO / 1024)} KB.`,
+    );
+  }
+  const ref = await addDoc(collection(db, "imagenes"), {
+    dataUrl,
+    peso: dataUrl.length,
+    creado: hoyISO(),
+  });
+  fotosEnMemoria.set(ref.id, Promise.resolve(dataUrl));
+  return `${PREFIJO_IMAGEN}${ref.id}`;
+}
+
+export async function borrarImagen(ref) {
+  const id = idDe(ref);
+  fotosEnMemoria.delete(id);
+  await deleteDoc(doc(db, "imagenes", id));
 }
 
 /* ---------- Ventas y facturas ---------- */

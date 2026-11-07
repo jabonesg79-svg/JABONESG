@@ -106,6 +106,53 @@
 .formulario__ancho { grid-column: 1 / -1; }
 @media (max-width: 620px) { .formulario { grid-template-columns: 1fr; } }
 
+/* --- Fotos del producto --- */
+.fotos-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px;
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+}
+.fotos-editor__item { display: flex; flex-direction: column; gap: 6px; }
+.fotos-editor__miniatura {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  background: var(--crema-honda);
+}
+.fotos-editor__miniatura img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fotos-editor__principal {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radio-pildora);
+  background: var(--caramelo);
+  color: var(--marfil);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fotos-editor__acciones { display: flex; gap: 4px; }
+.fotos-editor__acciones button {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  height: 32px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-imagen);
+  background: var(--marfil);
+  color: var(--taupe);
+}
+.fotos-editor__acciones button:hover:not(:disabled) { color: var(--cacao); border-color: var(--taupe); }
+.fotos-editor__acciones button:disabled { opacity: 0.35; cursor: not-allowed; }
+.fotos-editor__agregar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; }
+.fotos-editor__url { flex: 1 1 240px; display: flex; gap: 6px; align-items: center; }
+
 .interruptor { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .interruptor input { width: 17px; height: 17px; accent-color: var(--caramelo); }
 .interruptor span { font-size: 14px; }
