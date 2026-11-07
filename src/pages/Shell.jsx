@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSesion } from "../estado/contextos.js";
 import { useDatos } from "../estado/contextos.js";
 import { Boton, Cargando, Icono, Logotipo, Rama, Vacio } from "../ui/index.jsx";
@@ -14,9 +15,16 @@ const SECCIONES = [
   { a: "/panel/facturas", icono: "facturas", texto: "Facturas" },
 ];
 
+/** En el celular caben cinco botones: estos cuatro y "Más" con el resto. */
+const EN_BARRA = ["/panel", "/panel/ventas", "/panel/inventario", "/panel/eventos"];
+const EN_MAS = SECCIONES.filter((s) => !EN_BARRA.includes(s.a));
+
 export default function Shell() {
   const { usuario, salir } = useSesion();
   const { cargando, error, recargar } = useDatos();
+  const { pathname } = useLocation();
+  const [masAbierto, setMasAbierto] = useState(false);
+  const enMas = EN_MAS.some((s) => pathname.startsWith(s.a));
 
   return (
     <div className="shell">
@@ -72,18 +80,54 @@ export default function Shell() {
         )}
       </main>
 
+      {masAbierto && (
+        <div className="hoja-mas__velo no-imprimir" onClick={() => setMasAbierto(false)}>
+          <nav className="hoja-mas" aria-label="Más secciones" onClick={(e) => e.stopPropagation()}>
+            {EN_MAS.map((s) => (
+              <NavLink
+                key={s.a}
+                to={s.a}
+                className={({ isActive }) => `hoja-mas__enlace ${isActive ? "activo" : ""}`}
+                onClick={() => setMasAbierto(false)}
+              >
+                <Icono nombre={s.icono} tam={20} />
+                {s.texto}
+              </NavLink>
+            ))}
+            <NavLink to="/" className="hoja-mas__enlace">
+              <Icono nombre="tienda" tam={20} />
+              Ver la tienda
+            </NavLink>
+            <button className="hoja-mas__enlace" onClick={salir}>
+              <Icono nombre="salir" tam={20} />
+              Cerrar sesión
+            </button>
+            <p className="hoja-mas__correo">{usuario?.email}</p>
+          </nav>
+        </div>
+      )}
+
       <nav className="barra-movil no-imprimir">
-        {SECCIONES.map((s) => (
+        {EN_BARRA.map((a) => SECCIONES.find((s) => s.a === a)).map((s) => (
           <NavLink
             key={s.a}
             to={s.a}
             end={s.exacto}
+            onClick={() => setMasAbierto(false)}
             className={({ isActive }) => `barra-movil__enlace ${isActive ? "activo" : ""}`}
           >
             <Icono nombre={s.icono} tam={20} />
             {s.texto}
           </NavLink>
         ))}
+        <button
+          className={`barra-movil__enlace ${enMas || masAbierto ? "activo" : ""}`}
+          aria-expanded={masAbierto}
+          onClick={() => setMasAbierto((v) => !v)}
+        >
+          <Icono nombre={masAbierto ? "cerrar" : "menu"} tam={20} />
+          Más
+        </button>
       </nav>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import { siguienteNumeroFactura } from "../lib/datos.js";
-import { FORMAS_PAGO } from "../lib/dominio.js";
+import { FORMAS_PAGO, miniaturaDe } from "../lib/dominio.js";
 import { money, num } from "../lib/formato.js";
 import {
   Boton,
@@ -26,6 +26,8 @@ export default function Ventas() {
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteTelefono, setClienteTelefono] = useState("");
   const [cobrando, setCobrando] = useState(false);
+  // En el celular el carrito es una barra fija que se abre como hoja.
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
 
   const disponibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -105,6 +107,7 @@ export default function Ventas() {
       setClienteNombre("");
       setClienteTelefono("");
       setFormaPago(FORMAS_PAGO[0]);
+      setCarritoAbierto(false);
     } catch (err) {
       avisar(`No se pudo registrar: ${err.message}`, "peligro");
     } finally {
@@ -153,6 +156,13 @@ export default function Ventas() {
                     onClick={() => agregar(p)}
                     disabled={restante <= 0}
                   >
+                    <span className="pos__item-foto">
+                      {miniaturaDe(p) ? (
+                        <img src={miniaturaDe(p)} alt="" loading="lazy" />
+                      ) : (
+                        <Icono nombre="gota" tam={18} grosor={1.3} />
+                      )}
+                    </span>
                     <span className="pos__item-nombre">{p.nombre}</span>
                     <span className="pos__item-meta">
                       {[p.linea, p.aroma].filter(Boolean).join(" · ")}
@@ -172,12 +182,33 @@ export default function Ventas() {
           )}
         </div>
 
-        <Tarjeta className="bloque carrito">
+        {carrito.length > 0 && !carritoAbierto && (
+          <button className="carrito-barra no-imprimir" onClick={() => setCarritoAbierto(true)}>
+            <span className="carrito-barra__cantidad">
+              {num(carrito.reduce((s, i) => s + i.cantidad, 0))} u.
+            </span>
+            <strong>{money(total)}</strong>
+            <span className="carrito-barra__cobrar">Cobrar</span>
+          </button>
+        )}
+
+        {carritoAbierto && (
+          <div className="carrito__velo" onClick={() => setCarritoAbierto(false)} aria-hidden="true" />
+        )}
+
+        <Tarjeta className={`bloque carrito ${carritoAbierto ? "carrito--abierto" : ""}`}>
           <div className="bloque__cabecera">
             <h2 className="bloque__titulo">Venta actual</h2>
             <Insignia tono="beige">
               {num(carrito.reduce((s, i) => s + i.cantidad, 0))} u.
             </Insignia>
+            <button
+              className="carrito__cerrar"
+              onClick={() => setCarritoAbierto(false)}
+              aria-label="Cerrar la venta"
+            >
+              <Icono nombre="cerrar" tam={18} />
+            </button>
           </div>
 
           {carrito.length === 0 ? (

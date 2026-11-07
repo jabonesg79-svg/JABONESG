@@ -6,6 +6,8 @@
   gap: 16px;
   margin-bottom: 26px;
 }
+/* Cuatro tarjetas: en una fila si caben, si no 2×2 (nunca 3 + 1). */
+@media (max-width: 1180px) { .metricas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .metrica { padding: 20px 22px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
 .metrica__icono {
   width: 34px;
@@ -145,7 +147,8 @@
 .testimonio-editor > .portada__par { width: 100%; }
 
 /* --- Eventos --- */
-.chips--fila { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+/* Doble clase: .chips de la tienda (flex-wrap: wrap) no debe ganarle. */
+.chips.chips--fila { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .chips--fila::-webkit-scrollbar { display: none; }
 .chips--fila .chip { flex-shrink: 0; white-space: nowrap; }
 
@@ -292,6 +295,17 @@
 }
 .pos__item:hover:not(:disabled) { border-color: var(--caramelo); transform: translateY(-2px); }
 .pos__item:disabled { opacity: 0.45; cursor: not-allowed; }
+.pos__item-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  background: var(--crema);
+  display: grid;
+  place-items: center;
+  color: var(--beige);
+}
+.pos__item-foto img { width: 100%; height: 100%; object-fit: cover; }
 .pos__item-nombre { font-family: var(--display); font-size: 16px; font-weight: 500; }
 .pos__item-meta { font-size: 11.5px; color: var(--taupe); }
 .pos__item-precio { font-weight: 600; color: var(--caramelo); font-variant-numeric: tabular-nums; }
@@ -329,6 +343,146 @@
 .carrito__total span { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--taupe); }
 .carrito__total strong { font-family: var(--display); font-size: 27px; color: var(--cacao); font-variant-numeric: tabular-nums; }
 .carrito__campos { display: flex; flex-direction: column; gap: 13px; padding: 14px 22px 20px; }
+
+.carrito-barra, .carrito__cerrar, .carrito__velo, .fab { display: none; }
+
+/* ======================================================================
+   Panel en celular (hasta 860 px): una columna, todo a la vista y sin
+   scroll horizontal. El menú inferior mide var(--barra).
+   ====================================================================== */
+.sin-corte { white-space: nowrap; }
+.inv-tarjetas { display: none; }
+
+/* Inventario: tarjetas hasta 1279 px. Junto al menú lateral, las ocho
+   columnas de la tabla no caben y Estado y los botones quedaban escondidos
+   detrás de un scroll horizontal (la tabla pide ~950 px de contenido). */
+@media (max-width: 1279px) {
+  .inv-tabla { display: none; }
+  .inv-tarjetas { display: flex; flex-direction: column; list-style: none; padding: 0; margin: 0; }
+  .inv-tarjeta {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--linea);
+  }
+  .inv-tarjeta:last-child { border-bottom: 0; }
+  .inv-tarjeta__foto { width: 52px; height: 52px; }
+  .inv-tarjeta__texto { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+  .inv-tarjeta__texto .producto-celda__nombre { overflow-wrap: anywhere; }
+  .inv-tarjeta__acciones { display: flex; flex-direction: column; gap: 2px; }
+  .inv-tarjeta__acciones .boton { padding: 10px; }
+
+}
+
+@media (max-width: 860px) {
+  .solo-escritorio { display: none; }
+
+  /* Resumen: tarjetas 2×2 compactas */
+  .metricas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .metrica { padding: 14px; gap: 4px; }
+  .metrica__icono { display: none; }
+  .metrica__etiqueta { font-size: 9.5px; letter-spacing: 0.1em; }
+  .metrica__valor { font-size: 21px; overflow-wrap: anywhere; }
+  .metrica__nota { font-size: 11px; line-height: 1.35; }
+
+  /* Sin wrap: en columna con wrap, la línea toma el ancho de la fila de
+     filtros completa y la página se desborda hacia el lado. */
+  .herramientas { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .herramientas > * { min-width: 0; }
+  .herramientas__buscador { min-width: 0; }
+
+  /* Botón flotante de "nuevo", sobre el menú inferior */
+  .fab {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--barra) + 16px + env(safe-area-inset-bottom));
+    z-index: 45;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--salvia);
+    color: var(--marfil);
+    box-shadow: var(--sombra-difusa);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Vender: jabones en dos columnas; el carrito es una barra fija */
+  .pos__catalogo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pos__item { padding: 10px; gap: 4px; }
+  .pos__item-nombre { font-size: 14.5px; line-height: 1.25; }
+  .pos__item-meta { display: none; }
+
+  .carrito { display: none; }
+  .carrito-barra {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(var(--barra) + 10px + env(safe-area-inset-bottom));
+    z-index: 46;
+    padding: 10px 10px 10px 18px;
+    border: 0;
+    border-radius: var(--radio-pildora);
+    background: var(--cacao);
+    color: var(--marfil);
+    box-shadow: var(--sombra-difusa);
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .carrito-barra__cantidad { font-size: 12.5px; color: var(--beige); }
+  .carrito-barra strong { font-family: var(--display); font-size: 19px; font-variant-numeric: tabular-nums; }
+  .carrito-barra__cobrar {
+    padding: 10px 20px;
+    border-radius: var(--radio-pildora);
+    background: var(--caramelo);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .carrito__velo {
+    display: block;
+    position: fixed;
+    inset: 0 0 var(--barra);
+    z-index: 46;
+    background: color-mix(in srgb, var(--cacao) 35%, transparent);
+  }
+  .carrito.carrito--abierto {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: var(--barra);
+    z-index: 47;
+    max-height: calc(100dvh - var(--barra) - 40px);
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    box-shadow: var(--sombra-difusa);
+  }
+  .carrito--abierto .carrito__lineas { max-height: none; }
+  .carrito__cerrar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-left: 4px;
+    border: 0;
+    background: none;
+    color: var(--taupe);
+  }
+  .carrito__linea { padding: 12px 16px; flex-wrap: wrap; }
+  .carrito__campos { padding: 14px 16px 20px; }
+  /* La barra del carrito no debe tapar los últimos jabones. */
+  .pos { padding-bottom: 76px; }
+}
 
 /* --- Factura imprimible --- */
 .factura-hoja { background: var(--marfil); padding: 4px; }

@@ -92,6 +92,10 @@
 }
 .barra-movil__enlace {
   flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -103,7 +107,49 @@
   font-weight: 600;
   letter-spacing: 0.03em;
 }
+/* El activo se marca solo con color: ni recuadro ni fondo, tampoco al tocarlo. */
 .barra-movil__enlace.activo { color: var(--beige); }
+.barra-movil__enlace:focus { outline: none; }
+.barra-movil__enlace:focus-visible { outline: 1px solid color-mix(in srgb, var(--marfil) 40%, transparent); outline-offset: -6px; }
+
+/* Hoja "Más": sube desde la barra con las secciones que no caben. */
+.hoja-mas__velo {
+  position: fixed;
+  inset: 0 0 var(--barra);
+  z-index: 49;
+  background: color-mix(in srgb, var(--cacao) 30%, transparent);
+  display: flex;
+  align-items: flex-end;
+}
+.hoja-mas {
+  width: 100%;
+  background: var(--marfil);
+  border-radius: 14px 14px 0 0;
+  padding: 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--sombra-difusa);
+}
+.hoja-mas__enlace {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: var(--radio-imagen);
+  background: none;
+  color: var(--cacao);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.hoja-mas__enlace.activo { color: var(--caramelo-hondo); }
+.hoja-mas__enlace:focus { outline: none; }
+.hoja-mas__enlace:focus-visible { outline: 1px solid var(--taupe-claro); }
+.hoja-mas__correo { padding: 8px 16px 0; font-size: 12px; color: var(--taupe); border-top: 1px solid var(--linea); margin-top: 6px; }
+@media (min-width: 861px) { .hoja-mas__velo { display: none; } }
 
 @media (max-width: 860px) {
   .shell__lateral { display: none; }

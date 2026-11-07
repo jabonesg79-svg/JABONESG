@@ -70,6 +70,14 @@ const fotoDelFormulario = (entrada) => ({
 /** Ids de fotos subidas (las URL no viven en Firestore). */
 const idsDeFotos = (producto) => fotosDe(producto).filter((f) => !esUrlFoto(f));
 
+const EstadoProducto = ({ producto: p }) => {
+  const estado = estadoStock(p);
+  if (estado === "agotado") return <Insignia tono="peligro">Agotado</Insignia>;
+  if (estado === "bajo") return <Insignia tono="caramelo">Por reponer</Insignia>;
+  if (p.publicado === false) return <Insignia tono="beige">Sin publicar</Insignia>;
+  return <Insignia tono="salvia">En catálogo</Insignia>;
+};
+
 export default function Inventario() {
   const { productos, guardarProducto, eliminarProducto } = useDatos();
   const avisar = useAviso();
@@ -220,7 +228,8 @@ export default function Inventario() {
             unidades en total
           </p>
         </div>
-        <div className="cabecera-pagina__acciones">
+        {/* En el celular, "Nuevo jabón" es el botón flotante de abajo. */}
+        <div className="cabecera-pagina__acciones solo-escritorio">
           <Boton icono="mas" onClick={abrirNuevo}>
             Nuevo jabón
           </Boton>
@@ -231,7 +240,7 @@ export default function Inventario() {
         <div className="herramientas__buscador">
           <Buscador valor={busqueda} alCambiar={setBusqueda} placeholder="Buscar por nombre, código o lote..." />
         </div>
-        <div className="chips" style={{ margin: 0 }}>
+        <div className="chips chips--fila" style={{ margin: 0 }}>
           {FILTROS.map((f) => (
             <button
               key={f.id}
@@ -263,7 +272,8 @@ export default function Inventario() {
             }
           />
         ) : (
-          <div className="tabla-envoltura">
+          <>
+          <div className="tabla-envoltura inv-tabla">
             <table className="tabla">
               <thead>
                 <tr>
@@ -279,7 +289,6 @@ export default function Inventario() {
               </thead>
               <tbody>
                 {visibles.map((p) => {
-                  const estado = estadoStock(p);
                   return (
                     <tr key={p.id}>
                       <td>
@@ -306,7 +315,7 @@ export default function Inventario() {
                       </td>
                       <td>
                         <p style={{ fontSize: 13.5 }}>{p.lote || "—"}</p>
-                        <p className="producto-celda__meta">{fechaCorta(p.fechaElaboracion)}</p>
+                        <p className="producto-celda__meta sin-corte">{fechaCorta(p.fechaElaboracion)}</p>
                       </td>
                       <td className="num">
                         <strong>{num(p.stock)}</strong>
@@ -316,15 +325,7 @@ export default function Inventario() {
                       <td className="num">{money(p.precioVenta)}</td>
                       <td className="num">{margen(p.precioVenta, p.costoProduccion)}%</td>
                       <td>
-                        {estado === "agotado" ? (
-                          <Insignia tono="peligro">Agotado</Insignia>
-                        ) : estado === "bajo" ? (
-                          <Insignia tono="caramelo">Por reponer</Insignia>
-                        ) : p.publicado === false ? (
-                          <Insignia tono="beige">Sin publicar</Insignia>
-                        ) : (
-                          <Insignia tono="salvia">En catálogo</Insignia>
-                        )}
+                        <EstadoProducto producto={p} />
                       </td>
                       <td>
                         <div className="acciones-fila">
@@ -352,8 +353,56 @@ export default function Inventario() {
               </tbody>
             </table>
           </div>
+
+          {/* Celular: tarjetas con todo a la vista, sin scroll horizontal. */}
+          <ul className="inv-tarjetas">
+            {visibles.map((p) => (
+              <li key={p.id} className="inv-tarjeta">
+                <div className="producto-celda__foto inv-tarjeta__foto">
+                  {miniaturaDe(p) ? (
+                    <img src={miniaturaDe(p)} alt="" />
+                  ) : (
+                    <Icono nombre="gota" tam={20} grosor={1.3} />
+                  )}
+                </div>
+                <div className="inv-tarjeta__texto">
+                  <p className="producto-celda__nombre">{p.nombre}</p>
+                  <p className="producto-celda__meta">
+                    Stock <strong>{num(p.stock)}</strong> · {money(p.precioVenta)}
+                  </p>
+                  <EstadoProducto producto={p} />
+                  {p.publicado !== false && faltaParaTienda(p).length > 0 && (
+                    <p className="producto-celda__falta">Falta: {faltaParaTienda(p).join(", ")}</p>
+                  )}
+                </div>
+                <div className="inv-tarjeta__acciones">
+                  <Boton
+                    variante="fantasma"
+                    tamano="pequeno"
+                    onClick={() => abrirEdicion(p)}
+                    aria-label={`Editar ${p.nombre}`}
+                  >
+                    <Icono nombre="lapiz" tam={16} />
+                  </Boton>
+                  <Boton
+                    variante="fantasma"
+                    tamano="pequeno"
+                    onClick={() => setABorrar(p)}
+                    aria-label={`Eliminar ${p.nombre}`}
+                  >
+                    <Icono nombre="basura" tam={16} />
+                  </Boton>
+                </div>
+              </li>
+            ))}
+          </ul>
+          </>
         )}
       </Tarjeta>
+
+      <button className="fab no-imprimir" onClick={abrirNuevo} aria-label="Nuevo jabón">
+        <Icono nombre="mas" tam={24} grosor={2.2} />
+      </button>
 
       {form && (
         <Modal
