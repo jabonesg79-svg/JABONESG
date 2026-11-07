@@ -79,13 +79,15 @@ export function ProveedorDatos({ children }) {
     setIntento((n) => n + 1);
   }, []);
 
-  const guardarProducto = useCallback(async (datos, id) => {
-    if (id) {
+  /** `esNuevo` con `id`: crea el producto con un id reservado de antemano (el
+      de sus fotos). Sin `id`: lo crea con uno nuevo. Con `id` solo: lo actualiza. */
+  const guardarProducto = useCallback(async (datos, id, esNuevo = false) => {
+    if (id && !esNuevo) {
       const cambios = await actualizarProducto(id, datos);
       setProductos((lista) => lista.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
       return id;
     }
-    const nuevo = await crearProducto(datos);
+    const nuevo = await crearProducto(datos, id);
     setProductos((lista) => [nuevo, ...lista]);
     return nuevo.id;
   }, []);

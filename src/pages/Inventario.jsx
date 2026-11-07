@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import {
   AROMAS,
@@ -7,20 +7,14 @@ import {
   PRESENTACIONES,
   PRODUCTO_VACIO,
   TIPOS_PIEL,
-  esRefImagen,
+  esUrlFoto,
   estadoStock,
   fotosDe,
+  miniaturaDe,
 } from "../lib/dominio.js";
-import { borrarImagen, guardarImagen } from "../lib/datos.js";
-import {
-  MAX_FOTOS_PRODUCTO,
-  PESO_FOTO_PRODUCTO,
-  comprimirFotoProducto,
-  enKB,
-  validarImagen,
-  validarUrlImagen,
-} from "../lib/imagenes.js";
-import FotoProducto from "../ui/FotoProducto.jsx";
+import { borrarFotos, guardarFoto, leerFoto, nuevoIdProducto } from "../lib/datos.js";
+import { MAX_FOTOS_PRODUCTO } from "../lib/imagenes.js";
+import EditorFotos from "./EditorFotos.jsx";
 import { fechaCorta, margen, money, num, slug } from "../lib/formato.js";
 import {
   Area,
@@ -66,21 +60,14 @@ const aDocumento = (form) => ({
   beneficioCorto: (form.beneficioCorto || "").trim(),
 });
 
-/** Una foto del formulario. `nueva` = data URL recién comprimido que aún no
-    está en Firestore: se sube al guardar, nunca antes, para que cancelar no
-    deje fotos huérfanas. */
-const aFoto = (valor, extra = {}) => ({
-  clave: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-  valor,
-  ...extra,
+/** Pasa una entrada guardada de `fotos` al formato del editor (ver EditorFotos). */
+const fotoDelFormulario = (entrada) => ({
+  clave: `g-${entrada}`,
+  ...(esUrlFoto(entrada) ? { tipo: "url", url: entrada } : { tipo: "guardada", id: entrada }),
 });
 
-/** Borra fotos de `imagenes` sin frenar el flujo: si una falla, queda huérfana
-    pero el producto se guarda igual. */
-const borrarFotos = (refs) =>
-  Promise.all(
-    refs.map((ref) => borrarImagen(ref).catch((e) => console.error("[imagenes] no se borró", ref, e))),
-  );
+/** Ids de fotos subidas (las URL no viven en Firestore). */
+const idsDeFotos = (producto) => fotosDe(producto).filter((f) => !esUrlFoto(f));
 
 export default function Inventario() {
   const { productos, guardarProducto, eliminarProducto } = useDatos();
@@ -93,26 +80,15 @@ export default function Inventario() {
   const [guardando, setGuardando] = useState(false);
   const [aBorrar, setABorrar] = useState(null);
   const [fotos, setFotos] = useState([]);
-  const [urlFoto, setUrlFoto] = useState("");
-  const [procesandoFotos, setProcesandoFotos] = useState(false);
-  const [errorFotos, setErrorFotos] = useState("");
-  const archivoFotosRef = useRef(null);
 
   const originalEnEdicion = editandoId ? productos.find((p) => p.id === editandoId) : null;
-  const cupo = MAX_FOTOS_PRODUCTO - fotos.length;
 
   const campo = (clave) => (e) => setForm((f) => ({ ...f, [clave]: e.target.value }));
-
-  const reiniciarFotos = (lista) => {
-    setFotos(lista.map((valor) => aFoto(valor)));
-    setUrlFoto("");
-    setErrorFotos("");
-  };
 
   const abrirNuevo = () => {
     setEditandoId(null);
     setForm({ ...PRODUCTO_VACIO });
-    reiniciarFotos([]);
+    setFotos([]);
   };
 
   const abrirEdicion = (p) => {
@@ -127,67 +103,8 @@ export default function Inventario() {
       stockMinimo: String(p.stockMinimo ?? ""),
       beneficios: p.beneficios || [],
     });
-    reiniciarFotos(fotosDe(p));
+    setFotos(fotosDe(p).map(fotoDelFormulario));
   };
-
-  /* ---------- Fotos ---------- */
-
-  const subirFotos = async (e) => {
-    const archivos = [...(e.target.files || [])];
-    e.target.value = "";
-    if (!archivos.length) return;
-
-    setErrorFotos("");
-    const problemas = [];
-    if (archivos.length > cupo) {
-      problemas.push(
-        `Caben ${MAX_FOTOS_PRODUCTO} fotos por jabón: se tomaron ${Math.max(cupo, 0)} de las ${archivos.length} elegidas.`,
-      );
-    }
-
-    setProcesandoFotos(true);
-    const nuevas = [];
-    for (const archivo of archivos.slice(0, Math.max(cupo, 0))) {
-      const problema = validarImagen(archivo);
-      if (problema) {
-        problemas.push(`${archivo.name}: ${problema}`);
-        continue;
-      }
-      try {
-        const r = await comprimirFotoProducto(archivo);
-        nuevas.push(aFoto(r.dataUrl, { nueva: true, peso: r.peso, medidas: `${r.ancho}×${r.alto}` }));
-      } catch {
-        problemas.push(
-          `${archivo.name}: no bajó de ${enKB(PESO_FOTO_PRODUCTO)} ni comprimida al máximo. Prueba con una foto más liviana.`,
-        );
-      }
-    }
-    setFotos((lista) => [...lista, ...nuevas].slice(0, MAX_FOTOS_PRODUCTO));
-    setProcesandoFotos(false);
-    if (problemas.length) setErrorFotos(problemas.join(" "));
-  };
-
-  const agregarUrlFoto = async () => {
-    setErrorFotos("");
-    setProcesandoFotos(true);
-    try {
-      const problema = await validarUrlImagen(urlFoto);
-      if (problema) return setErrorFotos(problema);
-      setFotos((lista) => [...lista, aFoto(urlFoto.trim())]);
-      setUrlFoto("");
-    } finally {
-      setProcesandoFotos(false);
-    }
-  };
-
-  const moverFoto = (i, paso) =>
-    setFotos((lista) => {
-      const copia = [...lista];
-      [copia[i], copia[i + paso]] = [copia[i + paso], copia[i]];
-      return copia;
-    });
-
-  const quitarFoto = (i) => setFotos((lista) => lista.filter((_, j) => j !== i));
 
   const alternarBeneficio = (b) =>
     setForm((f) => {
@@ -202,36 +119,58 @@ export default function Inventario() {
     e.preventDefault();
     if (!form.nombre.trim()) return avisar("El jabón necesita un nombre", "peligro");
     setGuardando(true);
+    // Un producto nuevo reserva su id antes: sus fotos van debajo de él.
+    const productoId = editandoId || nuevoIdProducto();
     const subidas = [];
     try {
-      // Primero las fotos nuevas, cada una a su documento; el producto solo
-      // guarda la referencia. La primera de la lista es la principal.
-      const valores = [];
+      // Primero las fotos nuevas, cada una en su documento; el producto solo
+      // guarda los ids, en orden, y la miniatura de la principal.
+      const entradas = [];
       for (const foto of fotos) {
-        if (foto.nueva) {
-          const ref = await guardarImagen(foto.valor);
-          subidas.push(ref);
-          valores.push(ref);
+        if (foto.tipo === "nueva") {
+          const id = await guardarFoto(productoId, foto);
+          subidas.push(id);
+          entradas.push(id);
         } else {
-          valores.push(foto.valor);
+          entradas.push(foto.tipo === "url" ? foto.url : foto.id);
         }
       }
 
+      const principal = fotos[0];
+      const miniatura = !principal
+        ? ""
+        : principal.tipo === "nueva"
+          ? principal.miniatura
+          : principal.tipo === "guardada"
+            ? (await leerFoto(productoId, principal.id)).miniatura
+            : "";
+
       await guardarProducto(
-        { ...aDocumento(sinMetadatos(form)), imagen: valores[0] || "", galeria: valores.slice(1) },
-        editandoId,
+        {
+          ...aDocumento(sinMetadatos(form)),
+          fotos: entradas,
+          miniatura,
+          // `imagen` y `galeria` quedan del esquema anterior; `fotos` los reemplaza.
+          imagen: principal?.tipo === "url" ? principal.url : "",
+          galeria: [],
+        },
+        productoId,
+        !editandoId,
       );
 
       // Las que se quitaron del formulario ya no las usa nadie.
-      const quedan = new Set(valores);
-      await borrarFotos(fotosDe(originalEnEdicion).filter((v) => esRefImagen(v) && !quedan.has(v)));
+      const quedan = new Set(entradas);
+      await borrarFotos(
+        productoId,
+        idsDeFotos(originalEnEdicion).filter((id) => !quedan.has(id)),
+      );
 
       avisar(editandoId ? "Producto actualizado" : "Producto agregado al inventario", "exito");
       setForm(null);
       setEditandoId(null);
     } catch (err) {
       // El producto no quedó guardado: las fotos recién subidas sobran.
-      await borrarFotos(subidas);
+      await borrarFotos(productoId, subidas);
       avisar(`No se pudo guardar: ${err.message}`, "peligro");
     } finally {
       setGuardando(false);
@@ -241,7 +180,7 @@ export default function Inventario() {
   const borrar = async () => {
     try {
       await eliminarProducto(aBorrar.id);
-      await borrarFotos(fotosDe(aBorrar).filter(esRefImagen));
+      await borrarFotos(aBorrar.id, idsDeFotos(aBorrar));
       avisar("Producto eliminado", "exito");
     } catch (err) {
       avisar(`No se pudo eliminar: ${err.message}`, "peligro");
@@ -343,8 +282,8 @@ export default function Inventario() {
                       <td>
                         <div className="producto-celda">
                           <div className="producto-celda__foto">
-                            {p.imagen ? (
-                              <FotoProducto src={p.imagen} alt="" />
+                            {miniaturaDe(p) ? (
+                              <img src={miniaturaDe(p)} alt="" />
                             ) : (
                               <Icono nombre="gota" tam={20} grosor={1.3} />
                             )}
@@ -582,100 +521,7 @@ export default function Inventario() {
               <span className="campo__etiqueta">
                 Fotos · {fotos.length} de {MAX_FOTOS_PRODUCTO}
               </span>
-
-              {fotos.length > 0 && (
-                <ol className="fotos-editor">
-                  {fotos.map((foto, i) => (
-                    <li key={foto.clave} className="fotos-editor__item">
-                      <div className="fotos-editor__miniatura">
-                        <FotoProducto src={foto.valor} alt={`Foto ${i + 1}`} />
-                        {i === 0 && <span className="fotos-editor__principal">Principal</span>}
-                      </div>
-                      <p className="campo__pista">
-                        {foto.nueva
-                          ? `${enKB(foto.peso)} · ${foto.medidas} · sin guardar`
-                          : esRefImagen(foto.valor)
-                            ? "Guardada"
-                            : "Enlace"}
-                      </p>
-                      <div className="fotos-editor__acciones">
-                        <button
-                          type="button"
-                          onClick={() => moverFoto(i, -1)}
-                          disabled={i === 0}
-                          aria-label={`Mover la foto ${i + 1} antes`}
-                        >
-                          <Icono nombre="flecha" tam={15} style={{ transform: "rotate(180deg)" }} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moverFoto(i, 1)}
-                          disabled={i === fotos.length - 1}
-                          aria-label={`Mover la foto ${i + 1} después`}
-                        >
-                          <Icono nombre="flecha" tam={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => quitarFoto(i)}
-                          aria-label={`Quitar la foto ${i + 1}`}
-                        >
-                          <Icono nombre="basura" tam={15} />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-
-              {cupo > 0 ? (
-                <div className="fotos-editor__agregar">
-                  <Boton
-                    type="button"
-                    variante="contorno"
-                    icono="imagen"
-                    disabled={procesandoFotos}
-                    onClick={() => archivoFotosRef.current?.click()}
-                  >
-                    {procesandoFotos ? "Comprimiendo..." : "Subir fotos"}
-                  </Boton>
-                  <div className="fotos-editor__url">
-                    <input
-                      className="campo__control"
-                      placeholder="o pega una URL https://..."
-                      value={urlFoto}
-                      onChange={(e) => setUrlFoto(e.target.value)}
-                    />
-                    <Boton
-                      type="button"
-                      variante="fantasma"
-                      disabled={procesandoFotos || !urlFoto.trim()}
-                      onClick={agregarUrlFoto}
-                    >
-                      Agregar
-                    </Boton>
-                  </div>
-                </div>
-              ) : (
-                <p className="campo__pista">Llegaste al máximo de {MAX_FOTOS_PRODUCTO} fotos.</p>
-              )}
-
-              <span className="campo__pista">
-                JPG, PNG o WebP de hasta 4 MB. Se comprimen en tu navegador a máximo{" "}
-                {enKB(PESO_FOTO_PRODUCTO)} cada una y se guardan en Firestore, cada foto en su
-                propio documento. La primera es la de la tarjeta; usa las flechas para cambiar el
-                orden.
-              </span>
-              {errorFotos && <p className="portada__error">{errorFotos}</p>}
-
-              <input
-                ref={archivoFotosRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp"
-                onChange={subirFotos}
-                className="sr-solo"
-              />
+              <EditorFotos productoId={editandoId} fotos={fotos} alCambiar={setFotos} />
             </div>
 
             <div className="formulario__ancho">

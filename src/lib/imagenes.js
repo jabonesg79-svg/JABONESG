@@ -31,14 +31,14 @@ export const ERROR_MUY_PESADA =
   "La imagen es muy pesada. Intenta con una foto más liviana o pega una URL.";
 
 /** Valida el archivo de entrada antes de gastar tiempo en comprimirlo. */
-export function validarImagen(archivo) {
+export function validarImagen(archivo, pesoMaximo = PESO_MAXIMO_ARCHIVO) {
   if (!archivo) return "Elige un archivo.";
   if (!TIPOS_ACEPTADOS.includes(archivo.type)) {
     return "Formato no admitido. Usa JPG, PNG o WebP.";
   }
-  if (archivo.size > PESO_MAXIMO_ARCHIVO) {
+  if (archivo.size > pesoMaximo) {
     const mb = (archivo.size / 1024 / 1024).toFixed(1);
-    return `La imagen pesa ${mb} MB y el máximo son 4 MB.`;
+    return `La imagen pesa ${mb} MB y el máximo son ${Math.round(pesoMaximo / 1024 / 1024)} MB.`;
   }
   return null;
 }
@@ -89,16 +89,11 @@ function aDataUrl(blob) {
  */
 export async function comprimirImagen(
   archivo,
-  {
-    maxAncho = ANCHOS[0],
-    calidad = CALIDAD_INICIAL,
-    pesoObjetivo = PESO_MAXIMO_GUARDADO,
-    anchosAlternos = [ANCHOS[1]],
-  } = {},
+  { maxAncho = ANCHOS[0], calidad = CALIDAD_INICIAL, pesoObjetivo = PESO_MAXIMO_GUARDADO } = {},
 ) {
   const img = await cargarImagen(archivo);
   const tipo = soportaWebP() ? "image/webp" : "image/jpeg";
-  const anchos = [maxAncho, ...anchosAlternos].filter((a, i, lista) => lista.indexOf(a) === i);
+  const anchos = [maxAncho, ANCHOS[1]].filter((a, i, lista) => lista.indexOf(a) === i);
 
   const lienzo = document.createElement("canvas");
   const ctx = lienzo.getContext("2d");
@@ -131,21 +126,88 @@ export async function comprimirImagen(
   throw new Error(ERROR_MUY_PESADA);
 }
 
-/* ---------- Fotos de producto ---------- */
+/* ---------- Fotos de producto ----------
+
+   Cada foto sale en dos tamaños: la grande para la ficha y la miniatura para
+   las tarjetas del catálogo. Las dos van juntas en un documento de
+   `productos/{id}/imagenes`, así que entre ambas no pueden pasar del 1 MB de
+   Firestore (1 048 576 bytes, contando nombres de campo). */
 
 export const MAX_FOTOS_PRODUCTO = 4;
+/** Las fotos del celular pesan más que las 4 MB de la portada. */
+export const PESO_MAXIMO_FOTO = 25 * 1024 * 1024;
 
-/** Cada foto va en su propio documento de `imagenes`, así que este tope queda muy
-    por debajo del 1 MB de Firestore. Lo que manda es el peso de la página: el
-    catálogo baja una foto por tarjeta y debe cargar rápido en un celular. */
-export const PESO_FOTO_PRODUCTO = 250000;
+const GRANDE = { ladoMayor: 1600, calidad: 0.85, tope: 900000 };
+const MINIATURA = { ladoMayor: 600, calidad: 0.8, tope: 100000 };
+const PASO_FOTO = 0.05;
 
-export const comprimirFotoProducto = (archivo) =>
-  comprimirImagen(archivo, {
-    maxAncho: 1200,
-    pesoObjetivo: PESO_FOTO_PRODUCTO,
-    anchosAlternos: [900, 700],
-  });
+export const ERROR_FOTO_PESADA =
+  "Ni bajando la calidad cupo en 900 KB. Prueba con otra foto o recórtala antes.";
+
+/** "4,2 MB", "210 KB". */
+export const pesoLegible = (bytes) => {
+  const b = Number(bytes) || 0;
+  if (b >= 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+  return `${Math.max(1, Math.round(b / 1024))} KB`;
+};
+
+/**
+ * Decodifica respetando la orientación EXIF, para que una foto vertical del
+ * celular no quede acostada. createImageBitmap la aplica si se le pide; el
+ * respaldo con <img> la aplica por defecto en los navegadores actuales.
+ */
+async function decodificar(archivo) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      return await createImageBitmap(archivo, { imageOrientation: "from-image" });
+    } catch {
+      // Algunos navegadores no aceptan la opción: se sigue con <img>.
+    }
+  }
+  return cargarImagen(archivo);
+}
+
+/** Dibuja la foto con el lado mayor en `ladoMayor` (sin agrandarla) y baja la
+    calidad de a poco hasta que el data URL quepa en `tope`. */
+async function codificar(fuente, tipo, { ladoMayor, calidad, tope }) {
+  const ancho = fuente.naturalWidth || fuente.width;
+  const alto = fuente.naturalHeight || fuente.height;
+  const escala = Math.min(1, ladoMayor / Math.max(ancho, alto));
+
+  const lienzo = document.createElement("canvas");
+  lienzo.width = Math.round(ancho * escala);
+  lienzo.height = Math.round(alto * escala);
+  const ctx = lienzo.getContext("2d");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(fuente, 0, 0, lienzo.width, lienzo.height);
+
+  for (let q = calidad; q >= CALIDAD_MINIMA - 0.001; q -= PASO_FOTO) {
+    const blob = await aBlob(lienzo, tipo, Number(q.toFixed(2)));
+    if (!blob) continue;
+    const dataUrl = await aDataUrl(blob);
+    if (dataUrl.length <= tope) {
+      return { dataUrl, bytes: blob.size, ancho: lienzo.width, alto: lienzo.height, calidad: Number(q.toFixed(2)) };
+    }
+  }
+  throw new Error(ERROR_FOTO_PESADA);
+}
+
+/**
+ * Prepara una foto para guardarla: versión grande (1600 px, calidad 0,85) y
+ * miniatura (600 px, calidad 0,8), en WebP o, si el navegador no lo sabe
+ * exportar, en JPEG con la misma calidad.
+ */
+export async function prepararFoto(archivo) {
+  const fuente = await decodificar(archivo);
+  const tipo = soportaWebP() ? "image/webp" : "image/jpeg";
+  try {
+    const grande = await codificar(fuente, tipo, GRANDE);
+    const miniatura = await codificar(fuente, tipo, MINIATURA);
+    return { grande, miniatura, tipo, pesoOriginal: archivo.size };
+  } finally {
+    fuente.close?.();
+  }
+}
 
 /**
  * Comprueba que una URL pegada sea https y que la imagen cargue de verdad,

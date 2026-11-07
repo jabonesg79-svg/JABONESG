@@ -1,26 +1,28 @@
 import { useEffect, useState } from "react";
-import { esRefImagen } from "../lib/dominio.js";
-import { leerImagen } from "../lib/datos.js";
+import { esUrlFoto } from "../lib/dominio.js";
+import { leerFoto } from "../lib/datos.js";
 
 /**
- * Muestra una foto de producto venga como venga: URL, data URL o referencia
- * "img:<id>" a la colección `imagenes`. Mientras la referencia carga no pinta
- * nada y se ve el fondo del marco, igual que una foto lenta.
+ * Muestra una entrada de `fotos`: una URL tal cual, o el id de una foto de
+ * `productos/{productoId}/imagenes`, que se lee solo cuando este componente
+ * aparece (la ficha la pide al abrirse, nunca el catálogo). Mientras carga no
+ * pinta nada y se ve el fondo del marco.
  */
-export default function FotoProducto({ src, ...resto }) {
-  const [cargada, setCargada] = useState({ src: null, url: "" });
-  const esRef = esRefImagen(src);
+export default function FotoProducto({ productoId, foto, version = "grande", ...resto }) {
+  const [cargada, setCargada] = useState({ clave: null, url: "" });
+  const esUrl = esUrlFoto(foto);
+  const clave = `${productoId}/${foto}/${version}`;
 
   useEffect(() => {
-    if (!esRef) return undefined;
+    if (esUrl || !productoId || !foto) return undefined;
     let vigente = true;
-    leerImagen(src).then((url) => vigente && setCargada({ src, url }));
+    leerFoto(productoId, foto).then((f) => vigente && setCargada({ clave, url: f[version] }));
     return () => {
       vigente = false;
     };
-  }, [src, esRef]);
+  }, [clave, esUrl, productoId, foto, version]);
 
-  const url = esRef ? (cargada.src === src ? cargada.url : "") : src;
+  const url = esUrl ? foto : cargada.clave === clave ? cargada.url : "";
   if (!url) return null;
-  return <img src={url} {...resto} />;
+  return <img src={url} decoding="async" {...resto} />;
 }

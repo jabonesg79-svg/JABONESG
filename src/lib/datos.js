@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
-import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO, PREFIJO_IMAGEN } from "./dominio.js";
+import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO } from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -26,8 +26,16 @@ export async function leerProductos() {
   return conId(snap).sort((a, b) => (b.creado || "").localeCompare(a.creado || ""));
 }
 
-export async function crearProducto(datos) {
+/** Id para un producto que aún no existe: las fotos se suben antes que el
+    producto y necesitan saber bajo qué documento van. */
+export const nuevoIdProducto = () => doc(collection(db, "productos")).id;
+
+export async function crearProducto(datos, id) {
   const payload = { ...datos, creado: hoyISO(), actualizado: hoyISO() };
+  if (id) {
+    await setDoc(doc(db, "productos", id), payload);
+    return { id, ...payload };
+  }
   const ref = await addDoc(collection(db, "productos"), payload);
   return { id: ref.id, ...payload };
 }
@@ -42,53 +50,65 @@ export async function borrarProducto(id) {
   await deleteDoc(doc(db, "productos", id));
 }
 
-/* ---------- Fotos de producto ---------- */
+/* ---------- Fotos de producto ----------
+   Una foto por documento en `productos/{id}/imagenes/{fotoId}`, con la versión
+   grande y la miniatura. Nunca dentro del documento del producto. */
 
-/** Una promesa por id: la misma foto se pide una sola vez por pestaña aunque
-    la muestren la tarjeta, la ficha y el panel. */
+/** Una promesa por foto: la misma se pide una sola vez por pestaña aunque la
+    muestren la ficha y el panel. */
 const fotosEnMemoria = new Map();
 
-const idDe = (ref) => ref.slice(PREFIJO_IMAGEN.length);
+const refFoto = (productoId, fotoId) => doc(db, "productos", productoId, "imagenes", fotoId);
 
-/** Devuelve el data URL de una referencia "img:<id>", o "" si no existe. */
-export function leerImagen(ref) {
-  const id = idDe(ref);
-  if (!fotosEnMemoria.has(id)) {
+/** Devuelve { grande, miniatura }, vacíos si la foto no existe o falla la lectura. */
+export function leerFoto(productoId, fotoId) {
+  const clave = `${productoId}/${fotoId}`;
+  if (!fotosEnMemoria.has(clave)) {
     fotosEnMemoria.set(
-      id,
-      getDoc(doc(db, "imagenes", id))
-        .then((snap) => (snap.exists() ? snap.data().dataUrl || "" : ""))
+      clave,
+      getDoc(refFoto(productoId, fotoId))
+        .then((snap) => {
+          const d = snap.exists() ? snap.data() : {};
+          return { grande: d.grande || "", miniatura: d.miniatura || "" };
+        })
         .catch((error) => {
           // Sin caché del fallo: el próximo intento vuelve a preguntar.
-          fotosEnMemoria.delete(id);
-          console.error("[imagenes] no se pudo leer", id, error);
-          return "";
+          fotosEnMemoria.delete(clave);
+          console.error("[fotos] no se pudo leer", clave, error);
+          return { grande: "", miniatura: "" };
         }),
     );
   }
-  return fotosEnMemoria.get(id);
+  return fotosEnMemoria.get(clave);
 }
 
-export async function guardarImagen(dataUrl) {
-  if (dataUrl.length > PESO_MAXIMO_GUARDADO) {
+/** Margen bajo el 1 MB por documento para nombres de campo y metadatos. */
+const TOPE_DOCUMENTO_FOTO = 1000000;
+
+export async function guardarFoto(productoId, { grande, miniatura, ancho, alto, pesoOriginal }) {
+  const total = grande.length + miniatura.length;
+  if (total > TOPE_DOCUMENTO_FOTO) {
     throw new Error(
-      `La foto ocupa ${Math.round(dataUrl.length / 1024)} KB y el máximo por documento son ` +
-        `${Math.round(PESO_MAXIMO_GUARDADO / 1024)} KB.`,
+      `La foto ocupa ${Math.round(total / 1024)} KB y el documento admite hasta ` +
+        `${Math.round(TOPE_DOCUMENTO_FOTO / 1024)} KB.`,
     );
   }
-  const ref = await addDoc(collection(db, "imagenes"), {
-    dataUrl,
-    peso: dataUrl.length,
-    creado: hoyISO(),
-  });
-  fotosEnMemoria.set(ref.id, Promise.resolve(dataUrl));
-  return `${PREFIJO_IMAGEN}${ref.id}`;
+  const ref = doc(collection(db, "productos", productoId, "imagenes"));
+  await setDoc(ref, { grande, miniatura, ancho, alto, pesoOriginal, creado: hoyISO() });
+  fotosEnMemoria.set(`${productoId}/${ref.id}`, Promise.resolve({ grande, miniatura }));
+  return ref.id;
 }
 
-export async function borrarImagen(ref) {
-  const id = idDe(ref);
-  fotosEnMemoria.delete(id);
-  await deleteDoc(doc(db, "imagenes", id));
+/** Borra sin frenar el flujo: si una falla queda huérfana, pero lo demás sigue. */
+export async function borrarFotos(productoId, ids) {
+  await Promise.all(
+    ids.map((id) => {
+      fotosEnMemoria.delete(`${productoId}/${id}`);
+      return deleteDoc(refFoto(productoId, id)).catch((e) =>
+        console.error("[fotos] no se borró", productoId, id, e),
+      );
+    }),
+  );
 }
 
 /* ---------- Ventas y facturas ---------- */

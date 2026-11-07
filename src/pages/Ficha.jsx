@@ -26,7 +26,12 @@ export default function Ficha({ producto: p, enlacePedido, alCerrar }) {
         <div className="ficha__galeria">
           <div className="ficha__foto">
             {fotos.length ? (
-              <FotoProducto src={fotos[actual]} alt={`${p.nombre}, foto ${actual + 1} de ${fotos.length}`} />
+              // La versión grande se pide recién al abrir la ficha.
+              <FotoProducto
+                productoId={p.id}
+                foto={fotos[actual]}
+                alt={`${p.nombre}, foto ${actual + 1} de ${fotos.length}`}
+              />
             ) : (
               <LogoImagen variante="monograma" ancho={120} className="pieza__marca-agua" alt="" />
             )}
@@ -40,7 +45,13 @@ export default function Ficha({ producto: p, enlacePedido, alCerrar }) {
                   onClick={() => setActual(i)}
                   aria-label={`Ver foto ${i + 1}`}
                 >
-                  <FotoProducto src={foto} alt="" />
+                  <FotoProducto
+                    productoId={p.id}
+                    foto={foto}
+                    version="miniatura"
+                    alt=""
+                    loading="lazy"
+                  />
                 </button>
               ))}
             </div>

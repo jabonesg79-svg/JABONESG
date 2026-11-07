@@ -7,7 +7,7 @@ import {
   BENEFICIOS,
   ETIQUETA_ESTADO,
   estadoTienda,
-  fotosDe,
+  miniaturaDe,
   ordenarParaTienda,
 } from "../lib/dominio.js";
 import { enlaceInstagram, enlaceWhatsApp, money, telefonoLegible } from "../lib/formato.js";
@@ -21,7 +21,6 @@ import {
   Vacio,
 } from "../ui/index.jsx";
 import { useRevelado } from "../ui/useRevelado.js";
-import FotoProducto from "../ui/FotoProducto.jsx";
 import "./tienda.css";
 
 const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por WhatsApp"];
@@ -203,7 +202,9 @@ export default function Tienda() {
             <div className="rejilla">
               {visibles.map((p) => {
                 const estado = estadoTienda(p);
-                const foto = fotosDe(p)[0];
+                // La tarjeta usa la miniatura que ya trae el producto: el
+                // catálogo no lee ningún documento de fotos.
+                const foto = miniaturaDe(p);
                 const pedido = enlaceWhatsApp(contacto.whatsapp, mensajePedido(p));
                 return (
                   <article
@@ -217,7 +218,7 @@ export default function Tienda() {
                     >
                       <div className="pieza__foto">
                         {foto ? (
-                          <FotoProducto
+                          <img
                             src={foto}
                             alt={`Jabón ${p.nombre}${p.aroma ? `, aroma ${p.aroma.toLowerCase()}` : ""}`}
                             loading="lazy"

@@ -67,7 +67,8 @@ export const PRODUCTO_VACIO = {
   beneficios: [],
   tipoPiel: TIPOS_PIEL[0],
   modoUso: "",
-  galeria: [],
+  fotos: [],
+  miniatura: "",
   nuevo: false,
 };
 
@@ -100,15 +101,25 @@ export const ordenarParaTienda = (productos) =>
     .sort((a, b) => PESO_ESTADO[estadoTienda(a.p)] - PESO_ESTADO[estadoTienda(b.p)] || a.i - b.i)
     .map(({ p }) => p);
 
-/** Las fotos subidas desde el panel viven en `imagenes/{id}`; el producto solo
-    guarda "img:<id>". Las que vienen por URL se guardan tal cual. */
-export const PREFIJO_IMAGEN = "img:";
-export const esRefImagen = (valor) => String(valor || "").startsWith(PREFIJO_IMAGEN);
+/* ---------- Fotos ----------
 
-/** Foto principal y galería en una sola lista, sin vacíos ni repetidas. */
-export const fotosDe = (producto) => [
-  ...new Set([producto?.imagen, ...(producto?.galeria || [])].filter(Boolean)),
-];
+   `fotos` es la lista ordenada del producto; la primera es la principal. Cada
+   entrada es el id de un documento de `productos/{id}/imagenes` (fotos subidas
+   desde el panel) o una URL (enlaces viejos o los ejemplos). El producto guarda
+   además `miniatura`, la de la principal, para que el catálogo no tenga que
+   leer ningún otro documento. */
+
+export const esUrlFoto = (entrada) => /^(https?:|data:)/.test(String(entrada || ""));
+
+/** Productos guardados antes de `fotos` usan `imagen` y `galeria`. */
+export const fotosDe = (producto) => {
+  if (Array.isArray(producto?.fotos) && producto.fotos.length) return producto.fotos;
+  return [...new Set([producto?.imagen, ...(producto?.galeria || [])].filter(Boolean))];
+};
+
+/** Lo que muestra la tarjeta: la miniatura guardada o, si no hay, la primera URL. */
+export const miniaturaDe = (producto) =>
+  producto?.miniatura || fotosDe(producto).find(esUrlFoto) || "";
 
 /* ---------- Portada de la tienda ---------- */
 
@@ -141,4 +152,5 @@ export const LARGO_PARRAFO_PORTADA = 160;
 
 /* Las fotos de producto no van en el documento del producto: un catálogo que
    trae el base64 de cada foto en cada consulta se vuelve lento enseguida. Van en
-   `imagenes/{id}` y el producto guarda "img:<id>" (ver PREFIJO_IMAGEN). */
+   `productos/{id}/imagenes` y el producto guarda solo los ids y la miniatura
+   principal (ver fotosDe). */
