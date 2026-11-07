@@ -3,10 +3,15 @@ import {
   actualizarProducto,
   borrarProducto,
   crearProducto,
+  borrarPedidoEvento,
+  guardarConfigEventos as guardarConfigEventosEnFirestore,
   guardarContacto as guardarContactoEnFirestore,
+  guardarPedidoEvento as guardarPedidoEventoEnFirestore,
   guardarPortada as guardarPortadaEnFirestore,
   guardarTestimonios as guardarTestimoniosEnFirestore,
+  leerConfigEventos,
   leerContacto,
+  leerPedidosEventos,
   leerTestimonios,
   leerFacturas,
   leerPortada,
@@ -14,33 +19,35 @@ import {
   leerVentas,
   registrarVenta,
 } from "../lib/datos.js";
-import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO } from "../lib/dominio.js";
+import {
+  CONFIG_EVENTOS_POR_DEFECTO,
+  CONTACTO_POR_DEFECTO,
+  PORTADA_POR_DEFECTO,
+} from "../lib/dominio.js";
 import { DatosCtx, useSesion } from "./contextos.js";
 
-/** El visitante solo puede (y solo necesita) leer el catálogo;
-    el panel carga además ventas y facturas. */
-const traerTodo = (hayUsuario) =>
-  hayUsuario
-    ? // En el panel se lee siempre del servidor: quien edita debe ver el
-      // documento real, no una copia guardada en la pestaña.
-      Promise.all([
-        leerProductos(),
-        leerVentas(),
-        leerFacturas(),
-        leerPortada({ sinCache: true }),
-        leerContacto(),
-        leerTestimonios(),
-      ])
-    : Promise.all([leerProductos(), leerPortada(), leerContacto(), leerTestimonios()]).then(
-        ([productos, portada, contacto, testimonios]) => [
-          productos,
-          [],
-          [],
-          portada,
-          contacto,
-          testimonios,
-        ],
-      );
+/** El visitante solo lee lo que pinta la tienda; el panel carga además
+    ventas, comprobantes y pedidos de eventos. */
+const traerTodo = async (hayUsuario) => {
+  const [productos, portada, contacto, testimonios, configEventos] = await Promise.all([
+    leerProductos(),
+    // En el panel se lee siempre del servidor: quien edita debe ver el
+    // documento real, no una copia guardada en la pestaña.
+    leerPortada({ sinCache: hayUsuario }),
+    leerContacto(),
+    leerTestimonios(),
+    leerConfigEventos(),
+  ]);
+  if (!hayUsuario) {
+    return { productos, portada, contacto, testimonios, configEventos, ventas: [], facturas: [], pedidosEventos: [] };
+  }
+  const [ventas, facturas, pedidosEventos] = await Promise.all([
+    leerVentas(),
+    leerFacturas(),
+    leerPedidosEventos(),
+  ]);
+  return { productos, portada, contacto, testimonios, configEventos, ventas, facturas, pedidosEventos };
+};
 
 export function ProveedorDatos({ children }) {
   const { usuario } = useSesion();
@@ -52,6 +59,8 @@ export function ProveedorDatos({ children }) {
   const [portada, setPortada] = useState(PORTADA_POR_DEFECTO);
   const [contacto, setContacto] = useState(CONTACTO_POR_DEFECTO);
   const [testimonios, setTestimonios] = useState([]);
+  const [pedidosEventos, setPedidosEventos] = useState([]);
+  const [configEventos, setConfigEventos] = useState(CONFIG_EVENTOS_POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [intento, setIntento] = useState(0);
@@ -62,14 +71,16 @@ export function ProveedorDatos({ children }) {
     let vigente = true;
 
     traerTodo(Boolean(usuario))
-      .then(([p, v, f, portadaGuardada, contactoGuardado, testimoniosGuardados]) => {
+      .then((d) => {
         if (!vigente) return;
-        setProductos(p);
-        setVentas(v);
-        setFacturas(f);
-        if (portadaGuardada) setPortada(portadaGuardada);
-        if (contactoGuardado) setContacto(contactoGuardado);
-        setTestimonios(testimoniosGuardados || []);
+        setProductos(d.productos);
+        setVentas(d.ventas);
+        setFacturas(d.facturas);
+        if (d.portada) setPortada(d.portada);
+        if (d.contacto) setContacto(d.contacto);
+        setTestimonios(d.testimonios || []);
+        setPedidosEventos(d.pedidosEventos || []);
+        if (d.configEventos) setConfigEventos(d.configEventos);
         setError(null);
         setCargando(false);
       })
@@ -127,6 +138,25 @@ export function ProveedorDatos({ children }) {
     return guardados;
   }, []);
 
+  const guardarPedidoEvento = useCallback(async (datos, id) => {
+    const guardado = await guardarPedidoEventoEnFirestore(datos, id);
+    setPedidosEventos((lista) =>
+      id ? lista.map((p) => (p.id === id ? { ...p, ...guardado } : p)) : [guardado, ...lista],
+    );
+    return guardado;
+  }, []);
+
+  const eliminarPedidoEvento = useCallback(async (id) => {
+    await borrarPedidoEvento(id);
+    setPedidosEventos((lista) => lista.filter((p) => p.id !== id));
+  }, []);
+
+  const guardarConfigEventos = useCallback(async (datos) => {
+    const guardada = await guardarConfigEventosEnFirestore(datos);
+    setConfigEventos(guardada);
+    return guardada;
+  }, []);
+
   const venderCarrito = useCallback(async (datos) => {
     const resultado = await registrarVenta(datos);
     setVentas((lista) => [...resultado.ventas, ...lista]);
@@ -147,6 +177,8 @@ export function ProveedorDatos({ children }) {
       portada,
       contacto,
       testimonios,
+      pedidosEventos,
+      configEventos,
       cargando,
       error,
       recargar,
@@ -155,6 +187,9 @@ export function ProveedorDatos({ children }) {
       guardarPortada,
       guardarContacto,
       guardarTestimonios,
+      guardarPedidoEvento,
+      eliminarPedidoEvento,
+      guardarConfigEventos,
       venderCarrito,
       setFacturas,
     }),
@@ -165,6 +200,8 @@ export function ProveedorDatos({ children }) {
       portada,
       contacto,
       testimonios,
+      pedidosEventos,
+      configEventos,
       cargando,
       error,
       recargar,
@@ -173,6 +210,9 @@ export function ProveedorDatos({ children }) {
       guardarPortada,
       guardarContacto,
       guardarTestimonios,
+      guardarPedidoEvento,
+      eliminarPedidoEvento,
+      guardarConfigEventos,
       venderCarrito,
     ],
   );

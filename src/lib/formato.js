@@ -10,16 +10,24 @@ export const money = (valor) => pesos.format(Number(valor) || 0);
 
 export const num = (valor) => numero.format(Number(valor) || 0);
 
+/** "AAAA-MM-DD" a secas es un día del calendario, no un instante: new Date()
+    lo toma como medianoche UTC, que en Colombia (UTC−5) cae el día anterior.
+    Se arma en hora local para que el 15 se vea como 15. */
+const aFecha = (iso) => {
+  const soloDia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+  return soloDia ? new Date(+soloDia[1], +soloDia[2] - 1, +soloDia[3]) : new Date(iso);
+};
+
 export const fechaCorta = (iso) => {
   if (!iso) return "—";
-  const d = new Date(iso);
+  const d = aFecha(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 export const fechaLarga = (iso) => {
   if (!iso) return "—";
-  const d = new Date(iso);
+  const d = aFecha(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("es-CO", {
     weekday: "long",

@@ -10,6 +10,7 @@ import Inventario from "./pages/Inventario.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import Facturas from "./pages/Facturas.jsx";
 import Contacto from "./pages/Contacto.jsx";
+import Eventos from "./pages/Eventos.jsx";
 
 function Privado({ children }) {
   const { usuario, cargando } = useSesion();
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="ventas" element={<Ventas />} />
         <Route path="facturas" element={<Facturas />} />
         <Route path="contacto" element={<Contacto />} />
+        <Route path="eventos" element={<Eventos />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

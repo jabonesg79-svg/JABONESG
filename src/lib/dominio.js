@@ -163,6 +163,93 @@ export const CONTACTO_POR_DEFECTO = {
 export const MAX_TESTIMONIOS = 6;
 export const TESTIMONIO_VACIO = { nombre: "", ciudad: "", texto: "" };
 
+/* ---------- Eventos: pedidos de recordatorios ---------- */
+
+export const ESTADOS_EVENTO = [
+  "Cotizado",
+  "Confirmado",
+  "En producción",
+  "Listo",
+  "Entregado",
+  "Cancelado",
+];
+
+/** Los que todavía piden trabajo o cobro. */
+export const ESTADOS_EVENTO_ACTIVOS = ["Cotizado", "Confirmado", "En producción", "Listo"];
+
+export const TIPOS_EVENTO = [
+  "Matrimonio",
+  "Bautizo",
+  "Baby shower",
+  "Primera comunión",
+  "Cumpleaños",
+  "Empresarial",
+  "Otro",
+];
+
+export const METODOS_PAGO = ["Efectivo", "Nequi", "Daviplata", "Transferencia"];
+
+export const PEDIDO_EVENTO_VACIO = {
+  cliente: "",
+  telefono: "",
+  tipoEvento: TIPOS_EVENTO[0],
+  fechaEvento: "",
+  fechaEntrega: "",
+  cantidad: "",
+  aroma: "",
+  tamano: "",
+  empaque: "",
+  textoEtiqueta: "",
+  colores: "",
+  precioUnitario: "",
+  abonos: [],
+  notas: "",
+  estado: ESTADOS_EVENTO[0],
+};
+
+/** Lo que la sección Eventos de la tienda muestra. Vacío = la tienda no
+    muestra precios ni condiciones, solo la invitación a cotizar. */
+export const CONFIG_EVENTOS_POR_DEFECTO = {
+  precios: [],
+  pedidoMinimo: 0,
+  diasAnticipacion: 0,
+  empaques: [],
+};
+
+export const totalPedido = (p) =>
+  (Number(p?.cantidad) || 0) * (Number(p?.precioUnitario) || 0);
+
+export const abonadoPedido = (p) =>
+  (p?.abonos || []).reduce((s, a) => s + (Number(a.monto) || 0), 0);
+
+export const saldoPedido = (p) => Math.max(0, totalPedido(p) - abonadoPedido(p));
+
+/** Precio por unidad según la cantidad: el tramo más alto que la cantidad alcanza. */
+export const precioPorCantidad = (config, cantidad) => {
+  const n = Number(cantidad) || 0;
+  const tramos = [...(config?.precios || [])]
+    .filter((t) => Number(t.precio) > 0)
+    .sort((a, b) => Number(a.desde) - Number(b.desde));
+  const aplica = tramos.filter((t) => n >= (Number(t.desde) || 0)).pop();
+  return aplica ? Number(aplica.precio) : 0;
+};
+
+/** El precio más bajo de la tabla: lo que la tienda anuncia como "desde". */
+export const precioDesde = (config) => {
+  const precios = (config?.precios || []).map((t) => Number(t.precio)).filter((p) => p > 0);
+  return precios.length ? Math.min(...precios) : 0;
+};
+
+/** Días que faltan para una fecha "AAAA-MM-DD" (negativo si ya pasó). */
+export const diasHasta = (fechaISO) => {
+  if (!fechaISO) return null;
+  const [a, m, d] = String(fechaISO).split("-").map(Number);
+  if (!a || !m || !d) return null;
+  const hoy = new Date();
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return Math.round((new Date(a, m - 1, d) - inicioHoy) / 86400000);
+};
+
 /** Secciones de la tienda a las que puede llevar un botón del hero. */
 export const ENLACES_TIENDA = [
   { id: "#catalogo", etiqueta: "Catálogo" },

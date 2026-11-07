@@ -520,6 +520,23 @@ a.nav__enlace:hover { color: var(--caramelo); }
   background: var(--marfil);
 }
 .eventos__accion { display: inline-flex; align-self: flex-start; }
+.eventos__condiciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 24px;
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--beige);
+  max-width: 640px;
+}
+.eventos__condicion--ancha { grid-column: 1 / -1; }
+.eventos__condiciones dt {
+  font-size: var(--label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+.eventos__condiciones dd { margin: 4px 0 0; font-family: var(--fuente-display); font-size: 18px; color: var(--cacao); }
 
 @media (min-width: 861px) {
   .eventos__malla { flex-direction: row; align-items: center; justify-content: space-between; }

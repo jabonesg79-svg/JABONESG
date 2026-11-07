@@ -25,9 +25,10 @@ service cloud.firestore {
     }
 
     // Configuración que pinta la tienda: portada (hero), contacto (WhatsApp e
-    // Instagram) y testimonios. Lectura pública solo de esos tres documentos.
+    // Instagram), testimonios y eventos (precio desde, mínimo, anticipación y
+    // empaques). Lectura pública solo de esos cuatro documentos.
     match /configuracion/{documento} {
-      allow read: if documento in ["portada", "contacto", "testimonios"] || esAdmin();
+      allow read: if documento in ["portada", "contacto", "testimonios", "eventos"] || esAdmin();
       allow write: if esAdmin();
     }
 
@@ -61,6 +62,12 @@ service cloud.firestore {
                     && (!("creado" in request.resource.data)
                         || request.resource.data.creado == request.time);
       allow read, update, delete: if esAdmin();
+    }
+
+    // Pedidos de recordatorios para eventos, con datos del cliente y abonos:
+    // solo el admin.
+    match /eventos/{pedidoId} {
+      allow read, write: if esAdmin();
     }
 
     // Datos internos del negocio: solo el admin.

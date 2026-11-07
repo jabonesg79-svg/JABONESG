@@ -14,7 +14,12 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
-import { CONTACTO_POR_DEFECTO, MAX_TESTIMONIOS, PORTADA_POR_DEFECTO } from "./dominio.js";
+import {
+  CONFIG_EVENTOS_POR_DEFECTO,
+  CONTACTO_POR_DEFECTO,
+  MAX_TESTIMONIOS,
+  PORTADA_POR_DEFECTO,
+} from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -367,4 +372,78 @@ export async function guardarTestimonios(lista) {
     actualizado: serverTimestamp(),
   });
   return leerTestimonios();
+}
+
+/* ---------- Eventos ----------
+   Pedidos de recordatorios: solo el panel los lee y escribe. La configuración
+   (precios, mínimo, anticipación, empaques) la lee también la tienda. */
+
+/** Si no se pueden leer (por ejemplo, reglas aún sin desplegar), el panel
+    sigue funcionando con la lista vacía en vez de caerse entero. */
+export async function leerPedidosEventos() {
+  try {
+    const snap = await getDocs(collection(db, "eventos"));
+    return conId(snap);
+  } catch (error) {
+    console.error("[eventos] no se pudieron leer los pedidos", error);
+    return [];
+  }
+}
+
+/** Los números llegan del formulario como texto; los abonos, también. */
+const limpiarPedido = (datos) => ({
+  ...datos,
+  cliente: String(datos.cliente || "").trim(),
+  telefono: String(datos.telefono || "").trim(),
+  cantidad: Number(datos.cantidad) || 0,
+  precioUnitario: Number(datos.precioUnitario) || 0,
+  abonos: (datos.abonos || []).map((a) => ({
+    fecha: a.fecha || hoyISO().slice(0, 10),
+    monto: Number(a.monto) || 0,
+    metodo: a.metodo || "",
+  })),
+});
+
+export async function guardarPedidoEvento(datos, id) {
+  const payload = { ...limpiarPedido(datos), actualizado: hoyISO() };
+  delete payload.id;
+  if (id) {
+    await updateDoc(doc(db, "eventos", id), payload);
+    return { id, ...payload };
+  }
+  payload.creado = hoyISO();
+  const ref = await addDoc(collection(db, "eventos"), payload);
+  return { id: ref.id, ...payload };
+}
+
+export async function borrarPedidoEvento(id) {
+  await deleteDoc(doc(db, "eventos", id));
+}
+
+const CONFIG_EVENTOS = ["configuracion", "eventos"];
+
+export async function leerConfigEventos() {
+  try {
+    const snap = await getDoc(doc(db, ...CONFIG_EVENTOS));
+    return snap.exists()
+      ? { ...CONFIG_EVENTOS_POR_DEFECTO, ...snap.data() }
+      : { ...CONFIG_EVENTOS_POR_DEFECTO };
+  } catch (error) {
+    console.error("[eventos] no se pudo leer la configuración", error);
+    return { ...CONFIG_EVENTOS_POR_DEFECTO };
+  }
+}
+
+export async function guardarConfigEventos(datos) {
+  const limpio = {
+    precios: (datos.precios || [])
+      .map((t) => ({ desde: Number(t.desde) || 0, precio: Number(t.precio) || 0 }))
+      .filter((t) => t.precio > 0)
+      .sort((a, b) => a.desde - b.desde),
+    pedidoMinimo: Number(datos.pedidoMinimo) || 0,
+    diasAnticipacion: Number(datos.diasAnticipacion) || 0,
+    empaques: [...new Set((datos.empaques || []).map((e) => String(e).trim()).filter(Boolean))],
+  };
+  await setDoc(doc(db, ...CONFIG_EVENTOS), { ...limpio, actualizado: serverTimestamp() });
+  return leerConfigEventos();
 }

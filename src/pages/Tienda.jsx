@@ -10,6 +10,7 @@ import {
   estadoTienda,
   miniaturaDe,
   ordenarParaTienda,
+  precioDesde,
 } from "../lib/dominio.js";
 import { enlaceInstagram, enlaceWhatsApp, money, telefonoLegible } from "../lib/formato.js";
 import {
@@ -55,7 +56,7 @@ const MENSAJE_EVENTO =
   "Hola JabonesG, quiero cotizar recordatorios de jabón para un evento. Tipo de evento: ___ · Fecha: ___ · Cantidad aproximada: ___";
 
 export default function Tienda() {
-  const { productos, portada, contacto, testimonios, cargando } = useDatos();
+  const { productos, portada, contacto, testimonios, configEventos, cargando } = useDatos();
   const [busqueda, setBusqueda] = useState("");
   const [beneficio, setBeneficio] = useState("todos");
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -65,6 +66,22 @@ export default function Tienda() {
   const whatsapp = enlaceWhatsApp(contacto.whatsapp, MENSAJE_GENERAL);
   const whatsappEvento = enlaceWhatsApp(contacto.whatsapp, MENSAJE_EVENTO);
   const instagram = enlaceInstagram(contacto.instagram);
+
+  // Condiciones de eventos configuradas en el panel; las vacías no se muestran.
+  const desde = precioDesde(configEventos);
+  const condicionesEvento = [
+    desde && { titulo: "Desde", valor: `${money(desde)} por unidad` },
+    configEventos.pedidoMinimo > 0 && { titulo: "Pedido mínimo", valor: `${configEventos.pedidoMinimo} unidades` },
+    configEventos.diasAnticipacion > 0 && {
+      titulo: "Anticipación",
+      valor: `${configEventos.diasAnticipacion} días antes del evento`,
+    },
+    configEventos.empaques?.length > 0 && {
+      titulo: "Empaques",
+      valor: configEventos.empaques.join(" · "),
+      ancha: true,
+    },
+  ].filter(Boolean);
 
   const publicados = useMemo(
     () => [
@@ -306,6 +323,16 @@ export default function Tienda() {
                 <li key={e}>{e}</li>
               ))}
             </ul>
+            {condicionesEvento.length > 0 && (
+              <dl className="eventos__condiciones">
+                {condicionesEvento.map((c) => (
+                  <div key={c.titulo} className={c.ancha ? "eventos__condicion--ancha" : undefined}>
+                    <dt>{c.titulo}</dt>
+                    <dd>{c.valor}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
 
           {whatsappEvento && (
