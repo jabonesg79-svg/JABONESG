@@ -3,46 +3,84 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Catálogo público: cualquiera puede leer los productos, porque la tienda
-    // es pública y se renderiza sin sesión. Crear, editar o borrar exige una
-    // sesión autenticada del panel.
+    // Solo la cuenta del panel (jabonesg79@gmail.com) escribe. Se compara el
+    // UID y no el correo: el UID no cambia aunque se cambie el correo de la
+    // cuenta. La creación de cuentas está apagada en Authentication, pero la
+    // regla no depende de eso: aunque existiera otra cuenta, no podría tocar nada.
+    function esAdmin() {
+      return request.auth != null && request.auth.uid == "p4WbYsD6eIOhy5WGrX5MWAxRNAm2";
+    }
+
+    // Catálogo: la tienda lo lee sin sesión.
     match /productos/{productoId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if esAdmin();
 
       // Fotos de cada jabón, una por documento (versión grande + miniatura).
-      // La ficha de la tienda las lee sin sesión; subir o borrar exige sesión.
+      // La ficha de la tienda las lee sin sesión.
       match /imagenes/{imagenId} {
         allow read: if true;
-        allow write: if request.auth != null;
+        allow write: if esAdmin();
       }
     }
 
-    // Configuración de la tienda (portada). La home la lee sin sesión, así que
-    // la lectura es pública; escribir exige estar autenticado en el panel.
+    // Configuración que pinta la tienda: portada (hero), contacto (WhatsApp e
+    // Instagram) y testimonios. Lectura pública solo de esos tres documentos.
     match /configuracion/{documento} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if documento in ["portada", "contacto", "testimonios"] || esAdmin();
+      allow write: if esAdmin();
     }
 
-    // Datos internos del negocio: solo usuarios autenticados.
+    // Solicitudes de cotización de eventos. Hoy la tienda cotiza por WhatsApp y
+    // no guarda nada aquí; la regla queda lista por si se agrega un formulario.
+    // El público solo puede crear una solicitud, con campos y largos acotados
+    // para que no se pueda usar la colección como almacenamiento libre. Solo el
+    // admin las lee, edita o borra.
+    match /cotizaciones/{cotizacionId} {
+      allow create: if request.resource.data.keys().hasOnly(
+                         ["nombre", "telefono", "evento", "fecha", "cantidad", "mensaje", "creado"])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() <= 80
+                    && request.resource.data.telefono is string
+                    && request.resource.data.telefono.size() > 0
+                    && request.resource.data.telefono.size() <= 30
+                    && (!("evento" in request.resource.data)
+                        || (request.resource.data.evento is string
+                            && request.resource.data.evento.size() <= 60))
+                    && (!("fecha" in request.resource.data)
+                        || (request.resource.data.fecha is string
+                            && request.resource.data.fecha.size() <= 30))
+                    && (!("cantidad" in request.resource.data)
+                        || (request.resource.data.cantidad is int
+                            && request.resource.data.cantidad > 0
+                            && request.resource.data.cantidad <= 10000))
+                    && (!("mensaje" in request.resource.data)
+                        || (request.resource.data.mensaje is string
+                            && request.resource.data.mensaje.size() <= 1000))
+                    && (!("creado" in request.resource.data)
+                        || request.resource.data.creado == request.time);
+      allow read, update, delete: if esAdmin();
+    }
+
+    // Datos internos del negocio: solo el admin.
     match /ventas/{ventaId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if esAdmin();
     }
     match /facturas/{facturaId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if esAdmin();
     }
     match /clientes/{clienteId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if esAdmin();
     }
     match /lotes/{loteId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if esAdmin();
     }
     match /insumos/{insumoId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if esAdmin();
     }
 
-    // Todo lo demás queda cerrado por defecto.
+    // Todo lo demás queda cerrado.
     match /{document=**} {
       allow read, write: if false;
     }
