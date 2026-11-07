@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
 import Ficha from "./Ficha.jsx";
@@ -60,6 +60,7 @@ export default function Tienda() {
   const [beneficio, setBeneficio] = useState("todos");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [detalle, setDetalle] = useState(null);
+  const [contactoALaVista, setContactoALaVista] = useState(false);
 
   const whatsapp = enlaceWhatsApp(contacto.whatsapp, MENSAJE_GENERAL);
   const whatsappEvento = enlaceWhatsApp(contacto.whatsapp, MENSAJE_EVENTO);
@@ -94,6 +95,24 @@ export default function Tienda() {
     () => BENEFICIOS.filter((b) => publicados.some((p) => p.beneficios?.includes(b))),
     [publicados],
   );
+
+  // El botón flotante sobra cuando ya se ven los botones del hero, la franja
+  // de WhatsApp o el pie: ahí taparía justo esos botones y enlaces.
+  useEffect(() => {
+    const objetivos = document.querySelectorAll(".hero__acciones, .cierre, .pie");
+    if (!objetivos.length || typeof IntersectionObserver === "undefined") return undefined;
+    const visibles = new Set();
+    const observador = new IntersectionObserver((entradas) => {
+      for (const e of entradas) {
+        if (e.isIntersecting) visibles.add(e.target);
+        else visibles.delete(e.target);
+      }
+      setContactoALaVista(visibles.size > 0);
+      // Lo que queda debajo del header fijo no cuenta como "a la vista".
+    }, { rootMargin: "-74px 0px 0px 0px" });
+    objetivos.forEach((el) => observador.observe(el));
+    return () => observador.disconnect();
+  }, []);
 
   // Re-observa cuando cambia lo que se muestra, para que las piezas nuevas
   // también entren con su animación.
@@ -379,7 +398,9 @@ export default function Tienda() {
 
       {whatsapp && (
         <a
-          className="whatsapp-flotante no-imprimir"
+          className={`whatsapp-flotante no-imprimir ${contactoALaVista ? "whatsapp-flotante--oculto" : ""}`}
+          aria-hidden={contactoALaVista || undefined}
+          tabIndex={contactoALaVista ? -1 : undefined}
           href={whatsapp}
           target="_blank"
           rel="noreferrer noopener"

@@ -56,9 +56,14 @@ a.nav__enlace:hover { color: var(--caramelo); }
   width: 44px;
   height: 44px;
   border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--cacao);
+  -webkit-tap-highlight-color: transparent;
 }
+/* Al tocarlo no queda marcado; con teclado, un aro fino y discreto. */
+.barra__menu:focus { outline: none; }
+.barra__menu:focus-visible { outline: 1px solid var(--taupe-claro); outline-offset: 0; }
 
 @media (max-width: 860px) {
   .barra__menu { display: grid; }
@@ -83,8 +88,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   .nav__enlace { padding: 14px 0; font-size: 13px; border-bottom: 1px solid var(--linea); }
   .nav__enlace:last-child { border-bottom: 0; }
 
-  .barra__whatsapp { padding: 10px; }
-  .barra__whatsapp span { display: none; }
+  .barra__whatsapp { display: none; }
 }
 
 /* --- Hero: todo en flujo normal; solo la foto puede tapar la palabra --- */
@@ -174,13 +178,28 @@ a.nav__enlace:hover { color: var(--caramelo); }
   margin-top: 36px;
 }
 
+/* Celular: menos aire y botones más compactos, para que el título y el botón
+   del catálogo se vean sin bajar y los dos botones quepan lado a lado. */
+@media (max-width: 560px) {
+  .hero__texto { padding-top: 24px; padding-bottom: 40px; }
+  .hero__eyebrow.etiqueta { margin-bottom: 12px; font-size: 10px; letter-spacing: 0.12em; }
+  .hero__palabra { margin-bottom: 10px; }
+  .hero__subtitular { font-size: 22px; }
+  .hero__parrafo { margin-top: 10px; font-size: 14px; line-height: 1.6; }
+  .hero__acciones { margin-top: 20px; gap: 8px; flex-wrap: nowrap; }
+  .hero__accion { flex: 1 1 auto; min-width: 0; }
+  .hero__accion .boton { width: 100%; padding: 12px 10px; font-size: 12px; letter-spacing: 0.02em; white-space: nowrap; }
+}
+
 /* --- Foto a sangre --- */
 
 .hero__foto {
   position: relative;
   z-index: 1;
   order: 1;
-  height: 52vh;
+  /* Máximo 40% de la pantalla; en pantallas bajas, menos, para que el título y
+     el botón del catálogo entren sin bajar (el texto ocupa ~440px). */
+  height: clamp(180px, min(40svh, 100svh - 440px), 420px);
   background: var(--crema-honda);
   border-radius: 0;
   overflow: hidden;
@@ -251,6 +270,19 @@ a.nav__enlace:hover { color: var(--caramelo); }
   flex-wrap: wrap;
   margin-bottom: var(--hueco-grande);
 }
+
+/* Filtros del catálogo: una sola fila que se desliza, sin barra visible. Los
+   márgenes negativos dejan que la fila llegue al borde de la pantalla. */
+#catalogo .chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--inset));
+  padding-inline: var(--inset);
+  scroll-padding-inline: var(--inset);
+}
+#catalogo .chips::-webkit-scrollbar { display: none; }
+#catalogo .chip { flex-shrink: 0; white-space: nowrap; }
 .chip {
   border: 1px solid var(--taupe);
   background: transparent;
@@ -678,6 +710,18 @@ a.nav__enlace:hover { color: var(--caramelo); }
   transition: background var(--transicion), transform var(--transicion);
 }
 .whatsapp-flotante:hover { background: var(--salvia-honda); transform: translateY(-2px); }
+.whatsapp-flotante--oculto { opacity: 0; transform: translateY(16px); pointer-events: none; }
+.whatsapp-flotante { transition: background var(--transicion), transform var(--transicion), opacity var(--transicion); }
+
+/* Celular: cada sección deja abajo el alto del botón flotante, para que su
+   último contenido no quede debajo de él al terminar de bajar. */
+@media (max-width: 860px) {
+  .contenedor.catalogo,
+  .razones,
+  .eventos,
+  .pasos,
+  .testimonios { padding-bottom: calc(var(--seccion-corta) + 40px); }
+}
 .pie { padding-bottom: calc(var(--hueco-grande) + 64px); }
 
 .pieza__marca-agua { opacity: 0.16; }
