@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { Boton, LogoImagen } from "../ui/index.jsx";
-import { PORTADA_POR_DEFECTO } from "../lib/dominio.js";
+import { PORTADA_POR_DEFECTO, normalizarEnlace, problemaEnlace } from "../lib/dominio.js";
 import "./tienda.css";
 
 /**
@@ -17,10 +17,14 @@ export default function Hero({ portada = PORTADA_POR_DEFECTO, comoVistaPrevia = 
   const subtitulo = portada.subtitulo?.trim() || d.subtitulo;
   const parrafo = portada.parrafo?.trim() || d.parrafo;
   const textoBoton = portada.textoBoton?.trim() || d.textoBoton;
-  // "/catalogo" fue el valor por defecto antiguo y no existe como ruta: lleva al
-  // inicio en vez de bajar al catálogo. Se trata como el ancla que siempre quiso ser.
-  const guardado = portada.linkBoton?.trim();
-  const linkBoton = !guardado || guardado === "/catalogo" ? d.linkBoton : guardado;
+  const textoBoton2 = portada.textoBoton2?.trim() || d.textoBoton2;
+  // Un enlace roto cae al de por defecto: el botón nunca lleva a ninguna parte.
+  const enlace = (valor, porDefecto) => {
+    const v = normalizarEnlace(valor, porDefecto);
+    return problemaEnlace(v) ? porDefecto : v;
+  };
+  const linkBoton = enlace(portada.linkBoton, d.linkBoton);
+  const linkBoton2 = enlace(portada.linkBoton2, d.linkBoton2);
   // Cada frase de la etiqueta se mantiene entera; solo se corta entre frases.
   const frases = eyebrow.split("·").map((f) => f.trim()).filter(Boolean);
   const sinNavegar = comoVistaPrevia ? (e) => e.preventDefault() : undefined;
@@ -56,8 +60,8 @@ export default function Hero({ portada = PORTADA_POR_DEFECTO, comoVistaPrevia = 
             <a className="hero__accion" href={linkBoton} onClick={sinNavegar}>
               <Boton>{textoBoton}</Boton>
             </a>
-            <a className="hero__accion" href="#eventos" onClick={sinNavegar}>
-              <Boton variante="contorno">Jabones para tu evento</Boton>
+            <a className="hero__accion" href={linkBoton2} onClick={sinNavegar}>
+              <Boton variante="contorno">{textoBoton2}</Boton>
             </a>
           </div>
         </div>

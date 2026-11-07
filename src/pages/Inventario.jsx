@@ -9,6 +9,7 @@ import {
   TIPOS_PIEL,
   esUrlFoto,
   estadoStock,
+  faltaParaTienda,
   fotosDe,
   miniaturaDe,
 } from "../lib/dominio.js";
@@ -84,6 +85,8 @@ export default function Inventario() {
   const originalEnEdicion = editandoId ? productos.find((p) => p.id === editandoId) : null;
 
   const campo = (clave) => (e) => setForm((f) => ({ ...f, [clave]: e.target.value }));
+
+  const faltan = form ? faltaParaTienda({ ...form, fotos: fotos.map((f) => f.clave) }) : [];
 
   const abrirNuevo = () => {
     setEditandoId(null);
@@ -293,6 +296,11 @@ export default function Inventario() {
                             <p className="producto-celda__meta">
                               {[p.codigo, p.linea, p.aroma].filter(Boolean).join(" · ")}
                             </p>
+                            {p.publicado !== false && faltaParaTienda(p).length > 0 && (
+                              <p className="producto-celda__falta">
+                                Falta: {faltaParaTienda(p).join(", ")}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -364,16 +372,24 @@ export default function Inventario() {
           }
         >
           <form className="formulario" onSubmit={guardar}>
+            <div className={`formulario__ancho listo ${faltan.length ? "" : "listo--ok"}`}>
+              <Icono nombre={faltan.length ? "alerta" : "chequeo"} tam={16} grosor={2.2} />
+              {faltan.length
+                ? `Para la tienda falta: ${faltan.join(", ")}`
+                : "Listo para la tienda"}
+            </div>
+
+            {/* ---------- Datos básicos ---------- */}
+            <h3 className="formulario__bloque">Datos básicos</h3>
             <div className="formulario__ancho">
               <Campo
                 etiqueta="Nombre"
-                placeholder="Jabón de avena y miel"
+                placeholder="Ej.: Jabón de avena y miel"
                 value={form.nombre}
                 onChange={campo("nombre")}
                 required
               />
             </div>
-
             <Campo
               etiqueta="Código"
               placeholder="Se genera solo si lo dejas vacío"
@@ -388,17 +404,20 @@ export default function Inventario() {
               value={form.presentacion}
               onChange={campo("presentacion")}
             />
-
             <Campo
               etiqueta="Peso (gramos)"
               type="number"
               min="0"
-              placeholder="100"
+              placeholder="Ej.: 100"
               value={form.pesoGramos}
               onChange={campo("pesoGramos")}
             />
-            <Campo etiqueta="Lote" placeholder="L-2026-04" value={form.lote} onChange={campo("lote")} />
-
+            <Campo
+              etiqueta="Lote"
+              placeholder="Ej.: L-2026-04"
+              value={form.lote}
+              onChange={campo("lote")}
+            />
             <Campo
               etiqueta="Fecha de elaboración"
               type="date"
@@ -406,10 +425,13 @@ export default function Inventario() {
               onChange={campo("fechaElaboracion")}
             />
 
+            {/* ---------- Precio e inventario ---------- */}
+            <h3 className="formulario__bloque">Precio e inventario</h3>
             <Campo
               etiqueta="Costo de producción"
               type="number"
               min="0"
+              placeholder="Ej.: 5000"
               value={form.costoProduccion}
               onChange={campo("costoProduccion")}
             />
@@ -417,6 +439,7 @@ export default function Inventario() {
               etiqueta="Precio de venta"
               type="number"
               min="0"
+              placeholder="Ej.: 12000"
               value={form.precioVenta}
               onChange={campo("precioVenta")}
               pista={
@@ -425,11 +448,11 @@ export default function Inventario() {
                   : undefined
               }
             />
-
             <Campo
               etiqueta="Stock actual"
               type="number"
               min="0"
+              placeholder="Ej.: 20"
               value={form.stock}
               onChange={campo("stock")}
             />
@@ -437,15 +460,25 @@ export default function Inventario() {
               etiqueta="Stock mínimo"
               type="number"
               min="0"
+              placeholder="Ej.: 3"
               value={form.stockMinimo}
               onChange={campo("stockMinimo")}
               pista="Por debajo de este número aparece en «hay que reponer»"
             />
 
+            {/* ---------- Para la tienda ---------- */}
+            <h3 className="formulario__bloque">Para la tienda</h3>
+            <div className="formulario__ancho campo">
+              <span className="campo__etiqueta">
+                Fotos · {fotos.length} de {MAX_FOTOS_PRODUCTO}
+              </span>
+              <EditorFotos productoId={editandoId} fotos={fotos} alCambiar={setFotos} />
+            </div>
+
             <div className="formulario__ancho">
               <Campo
                 etiqueta="Beneficio corto"
-                placeholder="Calma y exfolia suave, ideal para uso diario."
+                placeholder="Ej.: Calma y exfolia suave, ideal para uso diario."
                 value={form.beneficioCorto || ""}
                 onChange={campo("beneficioCorto")}
                 maxLength={80}
@@ -492,36 +525,27 @@ export default function Inventario() {
 
             <div className="formulario__ancho">
               <Area
-                etiqueta="Descripción para la tienda"
-                placeholder="Barra de glicerina con avena molida y miel. Hidrata y exfolia suave."
+                etiqueta="Descripción"
+                placeholder="Ej.: Barra de glicerina con avena molida y miel. Hidrata y exfolia suave."
                 value={form.descripcion}
                 onChange={campo("descripcion")}
               />
             </div>
-
             <div className="formulario__ancho">
               <Area
                 etiqueta="Ingredientes"
-                placeholder="Base de glicerina, avena, miel, aceite de almendras..."
+                placeholder="Ej.: Base de glicerina, avena, miel, aceite de almendras"
                 value={form.ingredientes}
                 onChange={campo("ingredientes")}
               />
             </div>
-
             <div className="formulario__ancho">
               <Area
                 etiqueta="Modo de uso"
-                placeholder="Humedece la piel, haz espuma entre las manos y masajea. Enjuaga."
+                placeholder="Ej.: Humedece la piel, haz espuma entre las manos y masajea. Enjuaga."
                 value={form.modoUso || ""}
                 onChange={campo("modoUso")}
               />
-            </div>
-
-            <div className="formulario__ancho campo">
-              <span className="campo__etiqueta">
-                Fotos · {fotos.length} de {MAX_FOTOS_PRODUCTO}
-              </span>
-              <EditorFotos productoId={editandoId} fotos={fotos} alCambiar={setFotos} />
             </div>
 
             <div className="formulario__ancho">

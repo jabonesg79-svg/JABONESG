@@ -1,6 +1,12 @@
 import { useMemo, useRef, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
-import { LARGO_PARRAFO_PORTADA, PORTADA_POR_DEFECTO } from "../lib/dominio.js";
+import {
+  ENLACES_TIENDA,
+  LARGO_PARRAFO_PORTADA,
+  PORTADA_POR_DEFECTO,
+  normalizarEnlace,
+  problemaEnlace,
+} from "../lib/dominio.js";
 import {
   PESO_MAXIMO_GUARDADO,
   comprimirImagen,
@@ -8,7 +14,7 @@ import {
   validarImagen,
   validarUrlImagen,
 } from "../lib/imagenes.js";
-import { Area, Boton, Campo, Icono, Tarjeta } from "../ui/index.jsx";
+import { Area, Boton, Campo, Icono, Selector, Tarjeta } from "../ui/index.jsx";
 import { useAviso } from "../ui/contextoAvisos.js";
 import Hero from "./Hero.jsx";
 import "./panel.css";
@@ -18,6 +24,45 @@ const MODOS = [
   { id: "url", texto: "Pegar URL" },
 ];
 
+const OTRO = "otro";
+
+/** Elige una sección de la tienda o, con "Otro enlace", pega una URL https.
+    Si lo guardado no es una sección, se muestra como "Otro enlace". */
+function CampoEnlace({ etiqueta, valor, alCambiar }) {
+  const esSeccion = ENLACES_TIENDA.some((e) => e.id === valor);
+  const problema = problemaEnlace(valor);
+  return (
+    <div className="portada__enlace">
+      <Selector
+        etiqueta={etiqueta}
+        opciones={[
+          ...ENLACES_TIENDA.map((e) => ({ id: e.id, etiqueta: `${e.etiqueta} (${e.id})` })),
+          { id: OTRO, etiqueta: "Otro enlace (https://)" },
+        ]}
+        value={esSeccion ? valor : OTRO}
+        onChange={(e) => alCambiar(e.target.value === OTRO ? "" : e.target.value)}
+      />
+      {!esSeccion && (
+        <Campo
+          etiqueta="Enlace"
+          placeholder="Ej.: https://wa.me/573113509187"
+          value={valor}
+          onChange={(e) => alCambiar(e.target.value)}
+        />
+      )}
+      {problema && <p className="portada__error">{problema}</p>}
+    </div>
+  );
+}
+
+/** Lo guardado con el valor viejo "/catalogo" se corrige al abrir el panel;
+    al guardar una vez, queda corregido también en Firestore. */
+const conEnlacesCorregidos = (portada) => ({
+  ...portada,
+  linkBoton: normalizarEnlace(portada.linkBoton, PORTADA_POR_DEFECTO.linkBoton),
+  linkBoton2: normalizarEnlace(portada.linkBoton2, PORTADA_POR_DEFECTO.linkBoton2),
+});
+
 export default function Portada() {
   const { portada, guardarPortada } = useDatos();
   const avisar = useAviso();
@@ -25,7 +70,9 @@ export default function Portada() {
 
   // Shell no monta esta página hasta que los datos están cargados, así que
   // `portada` ya trae lo guardado y el formulario puede partir de ahí.
-  const [form, setForm] = useState(portada);
+  const [form, setForm] = useState(() => conEnlacesCorregidos(portada));
+  const enlaceCorregido = portada.linkBoton?.trim() === "/catalogo";
+  const enlacesConProblema = [form.linkBoton, form.linkBoton2].some(problemaEnlace);
   const [modo, setModo] = useState("archivo");
   const [url, setUrl] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -162,7 +209,11 @@ export default function Portada() {
           <Boton variante="contorno" onClick={restaurar}>
             Restaurar valores por defecto
           </Boton>
-          <Boton onClick={guardar} disabled={guardando || !hayCambios} icono="chequeo">
+          <Boton
+            onClick={guardar}
+            disabled={guardando || !hayCambios || enlacesConProblema}
+            icono="chequeo"
+          >
             {guardando ? "Guardando..." : "Guardar cambios"}
           </Boton>
         </div>
@@ -183,6 +234,12 @@ export default function Portada() {
           <Icono nombre="chequeo" tam={14} grosor={2.2} />
           Publicado a las{" "}
           {guardadoEn.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
+
+      {enlacesConProblema && (
+        <p className="portada__error">
+          Hay un enlace de botón que no lleva a ninguna parte: corrígelo para poder guardar.
         </p>
       )}
 
@@ -220,17 +277,36 @@ export default function Portada() {
               }
             />
 
+            {enlaceCorregido && (
+              <p className="portada__aviso">
+                El enlace guardado era «/catalogo», una página que no existe. Aquí ya quedó
+                «#catalogo»: guarda para aplicarlo en la tienda.
+              </p>
+            )}
+
             <div className="portada__par">
               <Campo
-                etiqueta="Texto del botón"
+                etiqueta="Texto del botón principal"
                 value={form.textoBoton || ""}
                 onChange={campo("textoBoton")}
               />
+              <CampoEnlace
+                etiqueta="Lleva a"
+                valor={form.linkBoton || ""}
+                alCambiar={(v) => campo("linkBoton")({ target: { value: v } })}
+              />
+            </div>
+
+            <div className="portada__par">
               <Campo
-                etiqueta="Enlace del botón"
-                value={form.linkBoton || ""}
-                onChange={campo("linkBoton")}
-                pista="Ruta interna o enlace completo"
+                etiqueta="Texto del segundo botón"
+                value={form.textoBoton2 || ""}
+                onChange={campo("textoBoton2")}
+              />
+              <CampoEnlace
+                etiqueta="Lleva a"
+                valor={form.linkBoton2 || ""}
+                alCambiar={(v) => campo("linkBoton2")({ target: { value: v } })}
               />
             </div>
           </div>

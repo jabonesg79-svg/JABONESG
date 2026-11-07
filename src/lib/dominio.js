@@ -101,6 +101,15 @@ export const ordenarParaTienda = (productos) =>
     .sort((a, b) => PESO_ESTADO[estadoTienda(a.p)] - PESO_ESTADO[estadoTienda(b.p)] || a.i - b.i)
     .map(({ p }) => p);
 
+/** Lo que le falta a un jabón para verse completo en la tienda. Vacío = listo. */
+export const faltaParaTienda = (producto) =>
+  [
+    fotosDe(producto).length === 0 && "foto",
+    !String(producto?.descripcion || "").trim() && "descripción",
+    !(producto?.beneficios || []).length && "beneficios",
+    !(Number(producto?.precioVenta) > 0) && "precio",
+  ].filter(Boolean);
+
 /* ---------- Fotos ----------
 
    `fotos` es la lista ordenada del producto; la primera es la principal. Cada
@@ -133,6 +142,8 @@ export const PORTADA_POR_DEFECTO = {
     "Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se empaca una por una.",
   textoBoton: "Ver el catálogo",
   linkBoton: "#catalogo",
+  textoBoton2: "Jabones para tu evento",
+  linkBoton2: "#eventos",
   imagenData: "",
   imagenAlt: "",
   imagenPeso: 0,
@@ -151,6 +162,32 @@ export const CONTACTO_POR_DEFECTO = {
     que se cargue uno real desde el panel. */
 export const MAX_TESTIMONIOS = 6;
 export const TESTIMONIO_VACIO = { nombre: "", ciudad: "", texto: "" };
+
+/** Secciones de la tienda a las que puede llevar un botón del hero. */
+export const ENLACES_TIENDA = [
+  { id: "#catalogo", etiqueta: "Catálogo" },
+  { id: "#nosotros", etiqueta: "Por qué JabonesG" },
+  { id: "#eventos", etiqueta: "Eventos" },
+  { id: "#como-comprar", etiqueta: "Cómo comprar" },
+  { id: "#contacto", etiqueta: "Contacto" },
+];
+
+/** "/catalogo" fue el valor por defecto antiguo y nunca existió como página:
+    llevaba al inicio en vez de bajar al catálogo. */
+export const normalizarEnlace = (valor, porDefecto) => {
+  const v = String(valor || "").trim();
+  if (!v) return porDefecto;
+  return v === "/catalogo" ? "#catalogo" : v;
+};
+
+/** null si el enlace lleva a algún lado; si no, por qué no. */
+export const problemaEnlace = (valor) => {
+  const v = String(valor || "").trim();
+  if (ENLACES_TIENDA.some((e) => e.id === v)) return null;
+  if (/^https:\/\/[^\s/]+\.[^\s]+$/.test(v)) return null;
+  if (!v) return "Elige una sección o pega un enlace.";
+  return "Ese enlace no existe en la tienda. Elige una sección o pega uno que empiece por https://";
+};
 
 /** Largo sugerido del párrafo del hero, no impuesto. */
 export const LARGO_PARRAFO_PORTADA = 160;

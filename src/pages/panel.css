@@ -104,6 +104,33 @@
 
 .formulario { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .formulario__ancho { grid-column: 1 / -1; }
+.formulario__bloque {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--linea);
+  font-family: var(--fuente-texto);
+  font-size: var(--label);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--cacao);
+}
+/* Los ejemplos se ven como ejemplos, no como datos ya cargados. */
+.formulario .campo__control::placeholder { color: var(--taupe-claro); font-style: italic; }
+
+.listo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radio-imagen);
+  background: var(--caramelo-velo);
+  color: var(--caramelo-hondo);
+  font-size: 13.5px;
+}
+.listo--ok { background: var(--salvia-velo); color: var(--salvia-honda); }
+.producto-celda__falta { margin-top: 3px; font-size: 11.5px; color: var(--caramelo-hondo); }
 @media (max-width: 620px) { .formulario { grid-template-columns: 1fr; } }
 
 .testimonio-editor {
@@ -280,7 +307,15 @@
 }
 
 .portada__campos { display: flex; flex-direction: column; gap: 22px; }
-.portada__par { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.portada__enlace { display: flex; flex-direction: column; gap: 10px; }
+.portada__aviso {
+  padding: 10px 14px;
+  border-radius: var(--radio-imagen);
+  background: var(--caramelo-velo);
+  color: var(--caramelo-hondo);
+  font-size: 13.5px;
+}
+.portada__par { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 @media (max-width: 620px) { .portada__par { grid-template-columns: 1fr; } }
 
 .portada__confirmacion {
