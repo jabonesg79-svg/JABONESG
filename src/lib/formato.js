@@ -39,7 +39,15 @@ export const fechaLarga = (iso) => {
 
 export const hoyISO = () => new Date().toISOString();
 
-export const diaISO = (iso = new Date().toISOString()) => String(iso).slice(0, 10);
+/** Día del calendario ("AAAA-MM-DD") en hora local. Cortar el ISO daría el día
+    en UTC, que en Colombia ya es el siguiente desde las 7 p. m. */
+export const diaISO = (iso = new Date().toISOString()) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return String(iso);
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  const dos = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+};
 
 /** Margen porcentual sobre el precio de venta. */
 export const margen = (precioVenta, costo) => {

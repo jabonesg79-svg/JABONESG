@@ -3,6 +3,7 @@ import { useDatos } from "../estado/contextos.js";
 import { cerrarCredito } from "../lib/datos.js";
 import { fechaCorta, fechaLarga, money, num } from "../lib/formato.js";
 import {
+  Area,
   Boton,
   Buscador,
   Icono,
@@ -16,25 +17,34 @@ import { useAviso } from "../ui/contextoAvisos.js";
 import "./panel.css";
 
 const FILTROS = [
-  { id: "todas", texto: "Todas" },
+  { id: "todas", texto: "Todos" },
   { id: "credito", texto: "Créditos abiertos" },
-  { id: "pagadas", texto: "Pagadas" },
+  { id: "pagadas", texto: "Pagados" },
+  { id: "anuladas", texto: "Anulados" },
 ];
 
-export default function Facturas() {
-  const { facturas, setFacturas } = useDatos();
+const MOTIVO_MINIMO = 5;
+
+/** Comprobantes de venta: registro interno de cada venta. No reemplaza la
+    factura electrónica de la DIAN, y así se dice en pantalla y al imprimir. */
+export default function Comprobantes() {
+  const { facturas, setFacturas, anularComprobante } = useDatos();
   const avisar = useAviso();
 
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("todas");
   const [abierta, setAbierta] = useState(null);
+  const [anulando, setAnulando] = useState(null);
+  const [motivo, setMotivo] = useState("");
+  const [procesando, setProcesando] = useState(false);
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return facturas
       .filter((f) => {
-        if (filtro === "credito") return f.estadoCredito === "abierto";
-        if (filtro === "pagadas") return f.estadoCredito !== "abierto";
+        if (filtro === "credito") return !f.anulada && f.estadoCredito === "abierto";
+        if (filtro === "pagadas") return !f.anulada && f.estadoCredito !== "abierto";
+        if (filtro === "anuladas") return f.anulada;
         return true;
       })
       .filter((f) =>
@@ -59,20 +69,44 @@ export default function Facturas() {
     }
   };
 
+  const confirmarAnulacion = async () => {
+    const texto = motivo.trim();
+    if (texto.length < MOTIVO_MINIMO) return avisar("Escribe el motivo de la anulación", "peligro");
+    setProcesando(true);
+    try {
+      const anulada = await anularComprobante(anulando, texto);
+      const unidades = Object.values(anulada.devuelto).reduce((s, n) => s + n, 0);
+      avisar(`Comprobante #${anulando.numeroFactura} anulado · ${num(unidades)} u. devueltas al stock`, "exito");
+      setAbierta((a) => (a && a.id === anulando.id ? anulada : a));
+      setAnulando(null);
+      setMotivo("");
+    } catch (err) {
+      avisar(`No se pudo anular: ${err.message}`, "peligro");
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   const porCobrar = facturas
-    .filter((f) => f.estadoCredito === "abierto")
+    .filter((f) => !f.anulada && f.estadoCredito === "abierto")
     .reduce((s, f) => s + (Number(f.total) || 0), 0);
+  const vigentes = facturas.filter((f) => !f.anulada).length;
 
   return (
     <>
       <header className="cabecera-pagina no-imprimir">
         <div>
-          <h1>Facturas</h1>
+          <h1>Comprobantes de venta</h1>
           <p>
-            {facturas.length} emitidas · {money(porCobrar)} pendientes de cobro
+            {vigentes} emitidos · {money(porCobrar)} pendientes de cobro
           </p>
         </div>
       </header>
+
+      <p className="aviso-legal no-imprimir">
+        <Icono nombre="alerta" tam={14} grosor={2.2} />
+        No es factura electrónica: es el comprobante interno de cada venta.
+      </p>
 
       <div className="herramientas no-imprimir">
         <div className="herramientas__buscador">
@@ -82,7 +116,7 @@ export default function Facturas() {
             placeholder="Buscar por número o cliente..."
           />
         </div>
-        <div className="chips" style={{ margin: 0 }}>
+        <div className="chips chips--fila" style={{ margin: 0 }}>
           {FILTROS.map((f) => (
             <button
               key={f.id}
@@ -99,10 +133,10 @@ export default function Facturas() {
         {visibles.length === 0 ? (
           <Vacio
             icono="facturas"
-            titulo={facturas.length === 0 ? "Todavía no hay facturas" : "Nada con ese filtro"}
+            titulo={facturas.length === 0 ? "Todavía no hay comprobantes" : "Nada con ese filtro"}
             texto={
               facturas.length === 0
-                ? "Cada venta que registres genera su factura automáticamente."
+                ? "Cada venta que registres genera su comprobante automáticamente."
                 : "Prueba con otra búsqueda."
             }
           />
@@ -111,36 +145,35 @@ export default function Facturas() {
             <table className="tabla">
               <thead>
                 <tr>
-                  <th>Factura</th>
-                  <th>Fecha</th>
+                  <th>Comprobante</th>
+                  <th className="col-opcional">Fecha</th>
                   <th>Cliente</th>
-                  <th>Pago</th>
-                  <th className="num">Artículos</th>
+                  <th className="col-opcional">Pago</th>
                   <th className="num">Total</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {visibles.map((f) => (
-                  <tr key={f.id}>
+                  <tr key={f.id} className={f.anulada ? "fila-anulada" : undefined}>
                     <td>
                       <strong>#{f.numeroFactura}</strong>
-                      <p className="producto-celda__meta">{f.ticket}</p>
+                      <p className="producto-celda__meta sin-corte solo-movil">{fechaCorta(f.fecha)}</p>
                     </td>
-                    <td>{fechaCorta(f.fecha)}</td>
+                    <td className="col-opcional sin-corte">{fechaCorta(f.fecha)}</td>
                     <td>{f.clienteNombre || "Mostrador"}</td>
-                    <td>
-                      {f.estadoCredito === "abierto" ? (
+                    <td className="col-opcional">
+                      {f.anulada ? (
+                        <Insignia tono="neutra">Anulado</Insignia>
+                      ) : f.estadoCredito === "abierto" ? (
                         <Insignia tono="caramelo">Crédito abierto</Insignia>
                       ) : (
                         <Insignia tono="salvia">{f.formaPago}</Insignia>
                       )}
                     </td>
                     <td className="num">
-                      {num((f.items || []).reduce((s, i) => s + (Number(i.cantidad) || 0), 0))}
-                    </td>
-                    <td className="num">
-                      <strong>{money(f.total)}</strong>
+                      <strong className="sin-corte">{money(f.total)}</strong>
+                      {f.anulada && <p className="producto-celda__meta">Anulado</p>}
                     </td>
                     <td>
                       <div className="acciones-fila">
@@ -157,15 +190,20 @@ export default function Facturas() {
         )}
       </Tarjeta>
 
-      {abierta && (
+      {abierta && !anulando && (
         <Modal
-          titulo={`Factura #${abierta.numeroFactura}`}
+          titulo={`Comprobante #${abierta.numeroFactura}`}
           alCerrar={() => setAbierta(null)}
           pie={
             <>
-              {abierta.estadoCredito === "abierto" && (
+              {!abierta.anulada && (
+                <Boton variante="fantasma" icono="basura" onClick={() => setAnulando(abierta)}>
+                  Anular
+                </Boton>
+              )}
+              {!abierta.anulada && abierta.estadoCredito === "abierto" && (
                 <Boton variante="salvia" icono="chequeo" onClick={() => marcarPagada(abierta)}>
-                  Marcar como pagada
+                  Marcar como pagado
                 </Boton>
               )}
               <Boton variante="contorno" icono="descarga" onClick={() => window.print()}>
@@ -175,6 +213,12 @@ export default function Facturas() {
           }
         >
           <div className="factura-hoja">
+            {abierta.anulada && (
+              <div className="sello-anulado">
+                <strong>Anulado</strong> el {fechaCorta(abierta.fechaAnulacion)} · {abierta.motivoAnulacion}
+              </div>
+            )}
+
             <div className="factura-hoja__cabecera">
               <Logotipo />
               <div className="factura-hoja__numero">
@@ -218,10 +262,30 @@ export default function Facturas() {
               </table>
             </div>
 
+            {abierta.descuento?.monto > 0 && (
+              <div className="factura-hoja__lineas">
+                <p>
+                  <span>Subtotal</span>
+                  <span>{money(abierta.subtotal)}</span>
+                </p>
+                <p>
+                  <span>
+                    Descuento
+                    {abierta.descuento.tipo === "porcentaje" ? ` (${abierta.descuento.valor}%)` : ""}
+                  </span>
+                  <span>− {money(abierta.descuento.monto)}</span>
+                </p>
+              </div>
+            )}
+
             <div className="factura-hoja__total">
               <span>Total</span>
               <strong>{money(abierta.total)}</strong>
             </div>
+
+            <p className="factura-hoja__nota">
+              Comprobante interno de venta. No es factura electrónica.
+            </p>
 
             <div className="factura-hoja__gracias">
               <div className="filete">
@@ -231,6 +295,49 @@ export default function Facturas() {
                 Gracias por tu compra
               </p>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {anulando && (
+        <Modal
+          titulo={`Anular comprobante #${anulando.numeroFactura}`}
+          alCerrar={() => setAnulando(null)}
+          pie={
+            <>
+              <Boton variante="contorno" onClick={() => setAnulando(null)}>
+                Cancelar
+              </Boton>
+              <Boton
+                variante="peligro"
+                icono="basura"
+                onClick={confirmarAnulacion}
+                disabled={procesando || motivo.trim().length < MOTIVO_MINIMO}
+              >
+                {procesando ? "Anulando..." : "Anular y devolver stock"}
+              </Boton>
+            </>
+          }
+        >
+          <div className="portada__campos">
+            <p>
+              La venta de <strong>{money(anulando.total)}</strong> deja de contar en las cifras y
+              las{" "}
+              <strong>
+                {num((anulando.items || []).reduce((s, i) => s + (Number(i.cantidad) || 0), 0))}{" "}
+                unidades
+              </strong>{" "}
+              vuelven al inventario. El comprobante se conserva marcado como anulado; esto no se
+              puede deshacer.
+            </p>
+            <Area
+              etiqueta="Motivo"
+              placeholder="Ej.: Se registró dos veces la misma venta"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              maxLength={200}
+              autoFocus
+            />
           </div>
         </Modal>
       )}

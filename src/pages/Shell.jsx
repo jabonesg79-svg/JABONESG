@@ -12,7 +12,7 @@ const SECCIONES = [
   { a: "/panel/inventario", icono: "inventario", texto: "Inventario" },
   { a: "/panel/ventas", icono: "ventas", texto: "Vender" },
   { a: "/panel/eventos", icono: "regalo", texto: "Eventos" },
-  { a: "/panel/facturas", icono: "facturas", texto: "Facturas" },
+  { a: "/panel/comprobantes", icono: "facturas", texto: "Comprobantes" },
 ];
 
 /** En el celular caben cinco botones: estos cuatro y "Más" con el resto. */

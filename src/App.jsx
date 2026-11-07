@@ -8,7 +8,7 @@ import Resumen from "./pages/Resumen.jsx";
 import Portada from "./pages/Portada.jsx";
 import Inventario from "./pages/Inventario.jsx";
 import Ventas from "./pages/Ventas.jsx";
-import Facturas from "./pages/Facturas.jsx";
+import Comprobantes from "./pages/Comprobantes.jsx";
 import Contacto from "./pages/Contacto.jsx";
 import Eventos from "./pages/Eventos.jsx";
 
@@ -46,7 +46,9 @@ export default function App() {
         <Route path="portada" element={<Portada />} />
         <Route path="inventario" element={<Inventario />} />
         <Route path="ventas" element={<Ventas />} />
-        <Route path="facturas" element={<Facturas />} />
+        <Route path="comprobantes" element={<Comprobantes />} />
+        {/* Dirección anterior: los enlaces guardados siguen funcionando. */}
+        <Route path="facturas" element={<Navigate to="/panel/comprobantes" replace />} />
         <Route path="contacto" element={<Contacto />} />
         <Route path="eventos" element={<Eventos />} />
       </Route>

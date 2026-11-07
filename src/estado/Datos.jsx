@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   actualizarProducto,
+  anularComprobante as anularComprobanteEnFirestore,
   borrarProducto,
   crearProducto,
   borrarPedidoEvento,
@@ -157,6 +158,31 @@ export function ProveedorDatos({ children }) {
     return guardada;
   }, []);
 
+  const anularComprobante = useCallback(
+    async (factura, motivo) => {
+      const lineas = ventas.filter((v) => v.ticket === factura.ticket && !v.anulada);
+      const { fechaAnulacion, devuelto } = await anularComprobanteEnFirestore({
+        factura,
+        lineas,
+        idsProductos: new Set(productos.map((p) => p.id)),
+        motivo,
+      });
+      const cambios = {
+        anulada: true,
+        motivoAnulacion: motivo,
+        fechaAnulacion,
+        ...(factura.estadoCredito === "abierto" ? { estadoCredito: "anulado" } : {}),
+      };
+      setFacturas((lista) => lista.map((f) => (f.id === factura.id ? { ...f, ...cambios } : f)));
+      setVentas((lista) => lista.map((v) => (v.ticket === factura.ticket ? { ...v, anulada: true } : v)));
+      setProductos((lista) =>
+        lista.map((p) => (p.id in devuelto ? { ...p, stock: (Number(p.stock) || 0) + devuelto[p.id] } : p)),
+      );
+      return { ...factura, ...cambios, devuelto };
+    },
+    [ventas, productos],
+  );
+
   const venderCarrito = useCallback(async (datos) => {
     const resultado = await registrarVenta(datos);
     setVentas((lista) => [...resultado.ventas, ...lista]);
@@ -190,6 +216,7 @@ export function ProveedorDatos({ children }) {
       guardarPedidoEvento,
       eliminarPedidoEvento,
       guardarConfigEventos,
+      anularComprobante,
       venderCarrito,
       setFacturas,
     }),
@@ -213,6 +240,7 @@ export function ProveedorDatos({ children }) {
       guardarPedidoEvento,
       eliminarPedidoEvento,
       guardarConfigEventos,
+      anularComprobante,
       venderCarrito,
     ],
   );

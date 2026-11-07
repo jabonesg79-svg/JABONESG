@@ -43,7 +43,24 @@ export const PRESENTACIONES = [
   { id: "liquido", etiqueta: "Jabón líquido" },
 ];
 
-export const FORMAS_PAGO = ["Efectivo", "Transferencia", "Crédito"];
+export const FORMAS_PAGO = ["Efectivo", "Nequi", "Daviplata", "Transferencia", "Crédito"];
+
+/* ---------- Ventas ---------- */
+
+/** Un comprobante anulado (y sus líneas) no cuenta en ninguna cifra. */
+export const vigente = (registro) => !registro?.anulada;
+
+/** Lo que de verdad entró por una línea de venta: precio × cantidad menos su
+    parte del descuento del comprobante. */
+export const ingresoLinea = (v) =>
+  (Number(v.precioVenta) || 0) * (Number(v.cantidad) || 0) - (Number(v.descuento) || 0);
+
+/** Monto del descuento en pesos, nunca negativo ni mayor que el subtotal. */
+export const montoDescuento = (subtotal, tipo, valor) => {
+  const v = Math.max(0, Number(valor) || 0);
+  const monto = tipo === "porcentaje" ? Math.round((subtotal * Math.min(v, 100)) / 100) : Math.round(v);
+  return Math.min(monto, Math.max(0, subtotal));
+};
 
 export const PRODUCTO_VACIO = {
   codigo: "",

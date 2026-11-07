@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import { siguienteNumeroFactura } from "../lib/datos.js";
-import { FORMAS_PAGO, miniaturaDe } from "../lib/dominio.js";
+import { FORMAS_PAGO, miniaturaDe, montoDescuento } from "../lib/dominio.js";
 import { money, num } from "../lib/formato.js";
 import {
   Boton,
@@ -26,6 +26,8 @@ export default function Ventas() {
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteTelefono, setClienteTelefono] = useState("");
   const [cobrando, setCobrando] = useState(false);
+  const [tipoDescuento, setTipoDescuento] = useState("pesos");
+  const [valorDescuento, setValorDescuento] = useState("");
   // En el celular el carrito es una barra fija que se abre como hoja.
   const [carritoAbierto, setCarritoAbierto] = useState(false);
 
@@ -87,7 +89,13 @@ export default function Ventas() {
   const cambiarPrecio = (id, valor) =>
     setCarrito((c) => c.map((i) => (i.id === id ? { ...i, precioFinal: Number(valor) || 0 } : i)));
 
-  const total = carrito.reduce((s, i) => s + i.precioFinal * i.cantidad, 0);
+  const subtotal = carrito.reduce((s, i) => s + i.precioFinal * i.cantidad, 0);
+  const descuento = montoDescuento(subtotal, tipoDescuento, valorDescuento);
+  // Lo escrito supera el total: se aplica el máximo posible y se avisa.
+  const descuentoRecortado =
+    Number(valorDescuento) > 0 &&
+    (tipoDescuento === "porcentaje" ? Number(valorDescuento) > 100 : Number(valorDescuento) > subtotal);
+  const total = subtotal - descuento;
 
   const cobrar = async () => {
     if (carrito.length === 0) return;
@@ -101,12 +109,15 @@ export default function Ventas() {
         formaPago,
         cliente: { nombre: clienteNombre.trim(), telefono: clienteTelefono.trim() },
         numeroFactura: siguienteNumeroFactura(facturas),
+        descuento: descuento ? { tipo: tipoDescuento, valor: Number(valorDescuento) || 0, monto: descuento } : null,
       });
-      avisar(`Venta registrada · factura ${factura.numeroFactura}`, "exito");
+      avisar(`Venta registrada · comprobante ${factura.numeroFactura}`, "exito");
       setCarrito([]);
       setClienteNombre("");
       setClienteTelefono("");
       setFormaPago(FORMAS_PAGO[0]);
+      setValorDescuento("");
+      setTipoDescuento("pesos");
       setCarritoAbierto(false);
     } catch (err) {
       avisar(`No se pudo registrar: ${err.message}`, "peligro");
@@ -247,6 +258,56 @@ export default function Ventas() {
                   </div>
                 ))}
               </div>
+
+              <div className="carrito__descuento">
+                <span className="campo__etiqueta">Descuento (opcional)</span>
+                <div className="carrito__descuento-fila">
+                  <div className="segmentado" role="group" aria-label="Tipo de descuento">
+                    {[
+                      { id: "pesos", texto: "$" },
+                      { id: "porcentaje", texto: "%" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={tipoDescuento === t.id ? "activo" : ""}
+                        aria-pressed={tipoDescuento === t.id}
+                        onClick={() => setTipoDescuento(t.id)}
+                      >
+                        {t.texto}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    className="campo__control"
+                    type="number"
+                    min="0"
+                    max={tipoDescuento === "porcentaje" ? 100 : subtotal}
+                    placeholder={tipoDescuento === "porcentaje" ? "Ej.: 10" : "Ej.: 2000"}
+                    aria-label="Valor del descuento"
+                    value={valorDescuento}
+                    onChange={(e) => setValorDescuento(e.target.value)}
+                  />
+                </div>
+                {descuentoRecortado && (
+                  <p className="portada__error">
+                    El descuento no puede superar el total: se aplica {money(descuento)}.
+                  </p>
+                )}
+              </div>
+
+              {descuento > 0 && (
+                <div className="carrito__desglose">
+                  <p>
+                    <span>Subtotal</span>
+                    <span>{money(subtotal)}</span>
+                  </p>
+                  <p>
+                    <span>Descuento</span>
+                    <span>− {money(descuento)}</span>
+                  </p>
+                </div>
+              )}
 
               <div className="carrito__total">
                 <span>Total</span>

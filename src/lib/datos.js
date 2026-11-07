@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -13,7 +14,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase.js";
-import { hoyISO } from "./formato.js";
+import { diaISO, hoyISO } from "./formato.js";
 import {
   CONFIG_EVENTOS_POR_DEFECTO,
   CONTACTO_POR_DEFECTO,
@@ -133,12 +134,29 @@ export async function leerFacturas() {
  * y el descuento de stock. Todo en un batch para que no queden ventas sin factura
  * ni stock descontado dos veces si algo falla a mitad de camino.
  */
-export async function registrarVenta({ carrito, formaPago, cliente, numeroFactura }) {
+export async function registrarVenta({ carrito, formaPago, cliente, numeroFactura, descuento }) {
   const fecha = hoyISO();
   const ticket = `T-${Date.now().toString(36).toUpperCase()}`;
   const lote = writeBatch(db);
 
-  const lineas = carrito.map((item) => {
+  // El descuento del comprobante se reparte entre las líneas según su peso,
+  // para que las cifras por jabón sumen exactamente lo cobrado. La última
+  // línea se lleva el redondeo.
+  const subtotales = carrito.map(
+    (i) => (Number(i.precioFinal ?? i.precioVenta) || 0) * (Number(i.cantidad) || 0),
+  );
+  const subtotal = subtotales.reduce((s, x) => s + x, 0);
+  const montoDesc = Math.min(Math.max(0, Number(descuento?.monto) || 0), subtotal);
+  let repartido = 0;
+  const descuentoDe = (indice) => {
+    if (!montoDesc || !subtotal) return 0;
+    if (indice === carrito.length - 1) return montoDesc - repartido;
+    const parte = Math.round((montoDesc * subtotales[indice]) / subtotal);
+    repartido += parte;
+    return parte;
+  };
+
+  const lineas = carrito.map((item, indice) => {
     const ref = doc(collection(db, "ventas"));
     const linea = {
       ticket,
@@ -152,12 +170,13 @@ export async function registrarVenta({ carrito, formaPago, cliente, numeroFactur
       cantidad: Number(item.cantidad) || 0,
       precioVenta: Number(item.precioFinal ?? item.precioVenta) || 0,
       costoProduccion: Number(item.costoProduccion) || 0,
+      descuento: descuentoDe(indice),
     };
     lote.set(ref, linea);
     return { id: ref.id, ...linea };
   });
 
-  const total = lineas.reduce((suma, l) => suma + l.precioVenta * l.cantidad, 0);
+  const total = subtotal - montoDesc;
 
   const facturaRef = doc(collection(db, "facturas"));
   const factura = {
@@ -165,6 +184,10 @@ export async function registrarVenta({ carrito, formaPago, cliente, numeroFactur
     fecha,
     formaPago,
     numeroFactura,
+    subtotal,
+    ...(montoDesc
+      ? { descuento: { tipo: descuento.tipo, valor: Number(descuento.valor) || 0, monto: montoDesc } }
+      : {}),
     total,
     clienteNombre: cliente?.nombre || "",
     clienteTelefono: cliente?.telefono || "",
@@ -192,6 +215,42 @@ export async function registrarVenta({ carrito, formaPago, cliente, numeroFactur
       carrito.map((i) => [i.id, Math.max(0, (Number(i.stock) || 0) - (Number(i.cantidad) || 0))]),
     ),
   };
+}
+
+/**
+ * Anula un comprobante registrado por error. En un solo lote: marca el
+ * comprobante y sus líneas como anulados (dejan de contar en las cifras) y
+ * devuelve al stock lo vendido. Nada se borra, para que quede el rastro.
+ *
+ * `lineas` son las ventas del comprobante (mismo ticket). `idsProductos` son
+ * los productos que todavía existen: actualizar uno borrado haría fallar el
+ * lote entero, y a un jabón eliminado no hay a dónde devolverle stock.
+ */
+export async function anularComprobante({ factura, lineas, idsProductos, motivo }) {
+  const fechaAnulacion = hoyISO();
+  const lote = writeBatch(db);
+
+  lote.update(doc(db, "facturas", factura.id), {
+    anulada: true,
+    motivoAnulacion: motivo,
+    fechaAnulacion,
+    // Un crédito anulado ya no se cobra.
+    ...(factura.estadoCredito === "abierto" ? { estadoCredito: "anulado" } : {}),
+  });
+
+  const devuelto = {};
+  for (const l of lineas) {
+    lote.update(doc(db, "ventas", l.id), { anulada: true });
+    if (l.productoId && idsProductos.has(l.productoId)) {
+      devuelto[l.productoId] = (devuelto[l.productoId] || 0) + (Number(l.cantidad) || 0);
+    }
+  }
+  for (const [id, cantidad] of Object.entries(devuelto)) {
+    lote.update(doc(db, "productos", id), { stock: increment(cantidad), actualizado: fechaAnulacion });
+  }
+
+  await lote.commit();
+  return { fechaAnulacion, devuelto };
 }
 
 export async function cerrarCredito(facturaId) {
@@ -398,7 +457,7 @@ const limpiarPedido = (datos) => ({
   cantidad: Number(datos.cantidad) || 0,
   precioUnitario: Number(datos.precioUnitario) || 0,
   abonos: (datos.abonos || []).map((a) => ({
-    fecha: a.fecha || hoyISO().slice(0, 10),
+    fecha: a.fecha || diaISO(),
     monto: Number(a.monto) || 0,
     metodo: a.metodo || "",
   })),
