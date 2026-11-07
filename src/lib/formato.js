@@ -49,3 +49,35 @@ export const slug = (texto) =>
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+/* ---------- Contacto ---------- */
+
+/** Solo dígitos, con indicativo de Colombia si llega un celular de 10 cifras. */
+export const numeroWhatsApp = (numero) => {
+  const digitos = String(numero || "").replace(/\D/g, "");
+  return digitos.length === 10 && digitos.startsWith("3") ? `57${digitos}` : digitos;
+};
+
+/** Enlace a un chat de WhatsApp, con mensaje prellenado opcional. Vacío si no hay número. */
+export const enlaceWhatsApp = (numero, mensaje = "") => {
+  const destino = numeroWhatsApp(numero);
+  if (!destino) return "";
+  return `https://wa.me/${destino}${mensaje ? `?text=${encodeURIComponent(mensaje)}` : ""}`;
+};
+
+/** "573113509187" se muestra como "+57 311 350 9187". */
+export const telefonoLegible = (numero) => {
+  const d = numeroWhatsApp(numero);
+  if (d.length === 12 && d.startsWith("57")) {
+    return `+57 ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
+  }
+  return d ? `+${d}` : "";
+};
+
+/** Acepta "@cuenta", "cuenta" o el enlace completo. */
+export const enlaceInstagram = (valor) => {
+  const v = String(valor || "").trim();
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://instagram.com/${v.replace(/^@/, "")}`;
+};

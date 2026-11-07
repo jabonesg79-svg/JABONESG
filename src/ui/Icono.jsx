@@ -28,6 +28,11 @@ const TRAZOS = {
   balanza: "M12 4v16M6 8h12M6 8l-3 6h6zM18 8l3 6h-6zM8 20h8",
   frasco: "M9 3h6v5l4 9a3 3 0 0 1-3 4H8a3 3 0 0 1-3-4l4-9z",
   imagen: "M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6",
+  menu: "M4 7h16M4 12h16M4 17h16",
+  whatsapp:
+    "M3.5 20.5l1.3-4.3A8.5 8.5 0 1 1 7.9 19.3zM9.2 8c-.6 3.4 3.4 7.4 6.8 6.8l.6-1.6-2-1-1 .8a5 5 0 0 1-2.6-2.6l.8-1-1-2z",
+  instagram:
+    "M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zM12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM17.5 6.5h.01",
 };
 
 export default function Icono({ nombre, tam = 20, grosor = 1.7, ...resto }) {

@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
-import { PORTADA_POR_DEFECTO } from "./dominio.js";
+import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO } from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -239,4 +239,30 @@ export async function guardarPortada(datos) {
   const confirmado = await leerPortada({ sinCache: true });
   console.log("[portada] guardado y releído desde Firestore", confirmado);
   return confirmado;
+}
+
+/* ---------- Contacto ---------- */
+
+const CONTACTO = ["configuracion", "contacto"];
+
+/** Igual que la portada: si falla o no existe, la tienda sigue con los valores
+    por defecto y nunca se queda sin botón de WhatsApp. */
+export async function leerContacto() {
+  try {
+    const snap = await getDoc(doc(db, ...CONTACTO));
+    return snap.exists()
+      ? { ...CONTACTO_POR_DEFECTO, ...snap.data() }
+      : { ...CONTACTO_POR_DEFECTO };
+  } catch (error) {
+    console.error("[contacto] no se pudo leer la configuración", error);
+    return { ...CONTACTO_POR_DEFECTO };
+  }
+}
+
+export async function guardarContacto(datos) {
+  const limpio = Object.fromEntries(
+    Object.keys(CONTACTO_POR_DEFECTO).map((clave) => [clave, String(datos[clave] ?? "").trim()]),
+  );
+  await setDoc(doc(db, ...CONTACTO), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
+  return leerContacto();
 }

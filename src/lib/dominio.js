@@ -76,10 +76,19 @@ export const PORTADA_POR_DEFECTO = {
   parrafo:
     "Aceites vegetales, arcillas y aromas naturales. Cada barra se corta, se cura y se empaca una por una.",
   textoBoton: "Ver el catálogo",
-  linkBoton: "/catalogo",
+  linkBoton: "#catalogo",
   imagenData: "",
   imagenAlt: "",
   imagenPeso: 0,
+};
+
+/* ---------- Contacto de la tienda ---------- */
+
+/** El número de WhatsApp viene de fábrica para que la tienda tenga contacto
+    aunque el documento aún no exista. Instagram queda vacío hasta tener cuenta. */
+export const CONTACTO_POR_DEFECTO = {
+  whatsapp: "573113509187",
+  instagram: "",
 };
 
 /** Largo sugerido del párrafo del hero, no impuesto. */

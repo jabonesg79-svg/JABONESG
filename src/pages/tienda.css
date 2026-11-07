@@ -1,5 +1,8 @@
 .tienda { min-height: 100vh; display: flex; flex-direction: column; background: var(--marfil); }
 
+/* Las anclas del menú no deben quedar tapadas por el header fijo. */
+.tienda section[id] { scroll-margin-top: var(--barra); }
+
 /* --- Header --- */
 
 .tienda__barra {
@@ -17,7 +20,7 @@
   height: var(--barra);
 }
 
-.nav { display: flex; align-items: center; gap: 28px; }
+.nav { display: flex; align-items: center; gap: 28px; margin-left: auto; }
 .nav__enlace {
   font-family: var(--fuente-texto);
   font-size: var(--menudo);
@@ -29,10 +32,59 @@
 }
 a.nav__enlace:hover { color: var(--caramelo); }
 
+.barra__acciones { display: flex; align-items: center; gap: 8px; }
+
+/* WhatsApp destacado: la única píldora rellena del header. */
+.barra__whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radio-pildora);
+  background: var(--salvia);
+  color: var(--marfil);
+  font-size: var(--menudo);
+  font-weight: 500;
+  letter-spacing: var(--tracking-boton);
+  transition: background var(--transicion);
+}
+.barra__whatsapp:hover { background: var(--salvia-honda); }
+
+.barra__menu {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--cacao);
+}
+
 @media (max-width: 860px) {
-  .nav { gap: 16px; overflow-x: auto; scrollbar-width: none; }
-  .nav::-webkit-scrollbar { display: none; }
-  .nav__enlace { font-size: 10.5px; white-space: nowrap; }
+  .barra__menu { display: grid; }
+
+  /* En celular el menú se despliega bajo el header en vez de apretarse al logo. */
+  .nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 8px var(--inset) 16px;
+    background: var(--marfil);
+    border-bottom: 1px solid var(--beige);
+    box-shadow: var(--sombra-difusa);
+  }
+  .nav--abierto { display: flex; }
+  .nav__enlace { padding: 14px 0; font-size: 13px; border-bottom: 1px solid var(--linea); }
+  .nav__enlace:last-child { border-bottom: 0; }
+
+  .barra__whatsapp { padding: 10px; }
+  .barra__whatsapp span { display: none; }
 }
 
 /* --- Hero: todo en flujo normal; solo la foto puede tapar la palabra --- */
@@ -52,21 +104,29 @@ a.nav__enlace:hover { color: var(--caramelo); }
   position: relative;
   z-index: 0;
   order: 2;
-  padding: var(--hueco-grande) var(--inset) 96px;
+  padding: var(--hueco-grande) var(--inset) 56px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* La palabra de marca se mide contra el ancho de esta columna. */
+  container-type: inline-size;
+  --palabra-max: 96px;
 }
 
 /* La etiqueta conserva el tracking y el tamaño, pero respeta las
    mayúsculas y minúsculas que se escriban en el panel. */
-.hero__eyebrow.etiqueta { margin-bottom: 24px; text-transform: none; }
+.hero__eyebrow.etiqueta { margin-bottom: 24px; text-transform: none; line-height: 1.8; }
+/* Cada frase va entera: la línea solo se corta entre frases. */
+.hero__eyebrow-frase { white-space: nowrap; }
 
 /* Decorativa: el nombre accesible ya está en el logotipo y en el subtitular. */
 .hero__palabra {
   font-family: var(--fuente-display);
   font-weight: 400;
-  font-size: clamp(56px, 18vw, 80px);
+  /* Siempre completa dentro de su columna: cada letra de Playfair ocupa
+     ~0,46em, así que el ancho disponible entre el número de letras (con
+     margen, a 0,52em) da el tamaño máximo que cabe. --letras lo pone Hero.jsx. */
+  font-size: min(var(--palabra-max), calc(100cqi / (var(--letras, 9) * 0.52)));
   line-height: 0.95;
   letter-spacing: -0.03em;
   color: var(--salvia);
@@ -107,7 +167,12 @@ a.nav__enlace:hover { color: var(--caramelo); }
   margin-top: 20px;
 }
 
-.hero__accion { margin-top: 36px; }
+.hero__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 36px;
+}
 
 /* --- Foto a sangre --- */
 
@@ -120,7 +185,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   border-radius: 0;
   overflow: hidden;
 }
-.hero__foto img { width: 100%; height: 100%; object-fit: cover; }
+.hero__foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
 .hero__hueco { position: relative; width: 100%; height: 100%; }
 .hero__hueco-monograma {
@@ -140,33 +205,33 @@ a.nav__enlace:hover { color: var(--caramelo); }
   color: color-mix(in srgb, var(--taupe) 50%, transparent);
 }
 
-@media (min-width: 861px) {
+@media (min-width: 1120px) {
+  /* El hero cabe en la primera pantalla: así no asoma un borde de la foto
+     sobre el catálogo al bajar. Las dos columnas se estiran a la misma altura
+     y el texto se centra en la suya. */
   .hero__malla {
     grid-template-columns: 1fr 1fr;
-    min-height: 88vh;
+    align-items: stretch;
+    min-height: clamp(560px, calc(100svh - var(--barra)), 860px);
   }
   .hero__texto {
     order: 1;
     justify-content: center;
-    padding: 96px var(--inset) 96px var(--sangrado);
+    padding: 64px 48px 64px var(--sangrado);
+    --palabra-max: 168px;
   }
   .hero__foto {
     order: 2;
-    height: 100%;
-    min-height: 88vh;
+    height: auto;
   }
 
-  /* La palabra se sale de su columna hacia la derecha y la foto la muerde.
-     Sin position absolute: sigue ocupando su sitio en el flujo. */
-  .hero__palabra {
-    font-size: clamp(72px, 11vw, 168px);
-    margin-right: -28vw;
-  }
 }
 
 /* --- Catálogo: fichas sin contenedor, sin borde, sin sombra --- */
 
-.catalogo { padding: var(--seccion) 0 var(--seccion-corta); }
+/* .contenedor fija padding: 0 a los lados; sin la doble clase, el padding
+   vertical del catálogo se perdía y el título quedaba pegado al hero. */
+.contenedor.catalogo { padding-top: var(--seccion); padding-bottom: var(--seccion-corta); }
 
 .catalogo__cabecera {
   display: flex;
@@ -256,6 +321,38 @@ a.nav__enlace:hover { color: var(--caramelo); }
   .pieza__precio { font-size: 17px; }
 }
 
+/* --- Eventos: banda crema con llamado a cotizar --- */
+
+.eventos { background: var(--crema); padding: var(--seccion-corta) 0; }
+.eventos__malla {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hueco);
+}
+.eventos__texto p { color: var(--taupe); max-width: 52ch; margin-top: 14px; }
+.eventos__tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+}
+.eventos__tipos li {
+  padding: 6px 14px;
+  border: 1px solid var(--beige);
+  border-radius: var(--radio-pildora);
+  font-size: var(--menudo);
+  color: var(--cacao);
+  background: var(--marfil);
+}
+.eventos__accion { display: inline-flex; align-self: flex-start; }
+
+@media (min-width: 861px) {
+  .eventos__malla { flex-direction: row; align-items: center; justify-content: space-between; }
+  .eventos__accion { align-self: center; flex-shrink: 0; }
+}
+
 /* --- Cierre: banda marfil, frase script y contacto --- */
 
 .cierre {
@@ -290,6 +387,7 @@ a.nav__enlace:hover { color: var(--caramelo); }
   max-width: 34ch;
 }
 .pie__bloque a { transition: color var(--transicion); }
+.pie__red { display: inline-flex; align-items: center; gap: 8px; }
 .pie__bloque a:hover { color: var(--cacao); }
 .pie__divisor { margin: var(--hueco-grande) 0 var(--hueco); }
 .pie__nota { font-size: var(--menudo); color: var(--taupe); max-width: none; }
@@ -298,21 +396,25 @@ a.nav__enlace:hover { color: var(--caramelo); }
   .pie__malla { grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: var(--hueco); }
 }
 
-.pie__cierre {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--hueco);
-  flex-wrap: wrap;
+/* --- WhatsApp flotante: siempre a mano, sin tapar el contenido final --- */
+
+.whatsapp-flotante {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--salvia);
+  color: var(--marfil);
+  box-shadow: var(--sombra-difusa);
+  transition: background var(--transicion), transform var(--transicion);
 }
-.pie__admin {
-  font-size: var(--label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--taupe);
-  transition: color var(--transicion);
-}
-.pie__admin:hover { color: var(--caramelo); }
+.whatsapp-flotante:hover { background: var(--salvia-honda); transform: translateY(-2px); }
+.pie { padding-bottom: calc(var(--hueco-grande) + 64px); }
 
 .pieza__marca-agua { opacity: 0.16; }
 
@@ -336,10 +438,11 @@ a.nav__enlace:hover { color: var(--caramelo); }
   margin-bottom: 10px;
   text-transform: none;
 }
-.hero--previa .hero__palabra { font-size: 46px; margin-bottom: 6px; }
+.hero--previa .hero__texto { --palabra-max: 46px; }
+.hero--previa .hero__palabra { margin-bottom: 6px; }
 .hero--previa .hero__subtitular { font-size: 13px; max-width: 20ch; }
 .hero--previa .hero__parrafo { font-size: 9px; line-height: 1.6; margin-top: 8px; }
-.hero--previa .hero__accion { margin-top: 14px; }
+.hero--previa .hero__acciones { margin-top: 14px; gap: 6px; }
 .hero--previa .hero__accion .boton { padding: 7px 16px; font-size: 8px; }
 .hero--previa .hero__foto { order: 2; height: auto; min-height: 0; aspect-ratio: 3 / 4; }
 .hero--previa .hero__hueco-monograma img { width: 84px; }

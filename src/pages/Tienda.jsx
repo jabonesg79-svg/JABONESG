@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
 import { LINEAS } from "../lib/dominio.js";
-import { money } from "../lib/formato.js";
+import { enlaceInstagram, enlaceWhatsApp, money, telefonoLegible } from "../lib/formato.js";
 import {
   Boton,
   Buscador,
@@ -16,30 +15,39 @@ import {
 import { useRevelado } from "../ui/useRevelado.js";
 import "./tienda.css";
 
-/** Número de WhatsApp en formato internacional sin signos, por ejemplo
-    "573000000000". Vacío = el botón no se renderiza. */
-const WHATSAPP = "";
-
-/** Enlaces de redes. Vacío mientras no haya cuentas publicadas. */
-const REDES = [];
-
 const ENVIOS = ["Envíos a todo el país", "Entregas locales coordinadas por WhatsApp"];
 
 const PAGOS = ["Efectivo", "Transferencia bancaria", "Nequi y Daviplata"];
 
-/** Las entradas sin `destino` aún no tienen sección: se muestran, pero no enlazan
-    a ninguna parte para no dejar anclas rotas. */
+/** Solo secciones que existen: un enlace que no lleva a ninguna parte se ve roto. */
 const NAVEGACION = [
   { texto: "Catálogo", destino: "#catalogo" },
-  { texto: "Ingredientes", destino: null },
-  { texto: "Nosotros", destino: null },
+  { texto: "Eventos", destino: "#eventos" },
   { texto: "Contacto", destino: "#contacto" },
 ];
 
+const EVENTOS = [
+  "Matrimonios",
+  "Bautizos",
+  "Baby shower",
+  "Primeras comuniones",
+  "Cumpleaños",
+  "Detalles empresariales",
+];
+
+const MENSAJE_GENERAL = "Hola JabonesG, quiero información sobre sus jabones.";
+const MENSAJE_EVENTO =
+  "Hola JabonesG, quiero cotizar recordatorios de jabón para un evento. Tipo de evento: ___ · Fecha: ___ · Cantidad aproximada: ___";
+
 export default function Tienda() {
-  const { productos, portada, cargando } = useDatos();
+  const { productos, portada, contacto, cargando } = useDatos();
   const [busqueda, setBusqueda] = useState("");
   const [linea, setLinea] = useState("todas");
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  const whatsapp = enlaceWhatsApp(contacto.whatsapp, MENSAJE_GENERAL);
+  const whatsappEvento = enlaceWhatsApp(contacto.whatsapp, MENSAJE_EVENTO);
+  const instagram = enlaceInstagram(contacto.instagram);
 
   const publicados = useMemo(
     () => productos.filter((p) => p.publicado !== false),
@@ -74,20 +82,46 @@ export default function Tienda() {
         <div className="contenedor">
           <Logotipo compacto />
 
-          <nav className="nav" aria-label="Secciones del sitio">
-            {NAVEGACION.map((item) =>
-              item.destino ? (
-                <a key={item.texto} className="nav__enlace" href={item.destino}>
-                  {item.texto}
-                </a>
-              ) : (
-                // Sin sección todavía: se muestra, pero no enlaza a ninguna parte.
-                <span key={item.texto} className="nav__enlace">
-                  {item.texto}
-                </span>
-              ),
-            )}
+          <nav
+            id="menu-principal"
+            className={`nav ${menuAbierto ? "nav--abierto" : ""}`}
+            aria-label="Secciones del sitio"
+          >
+            {NAVEGACION.map((item) => (
+              <a
+                key={item.texto}
+                className="nav__enlace"
+                href={item.destino}
+                onClick={() => setMenuAbierto(false)}
+              >
+                {item.texto}
+              </a>
+            ))}
           </nav>
+
+          <div className="barra__acciones">
+            {whatsapp && (
+              <a
+                className="barra__whatsapp"
+                href={whatsapp}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label="Escríbenos por WhatsApp"
+              >
+                <Icono nombre="whatsapp" tam={18} />
+                <span>WhatsApp</span>
+              </a>
+            )}
+            <button
+              className="barra__menu"
+              aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={menuAbierto}
+              aria-controls="menu-principal"
+              onClick={() => setMenuAbierto((v) => !v)}
+            >
+              <Icono nombre={menuAbierto ? "cerrar" : "menu"} tam={22} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -179,18 +213,44 @@ export default function Tienda() {
         </div>
       </section>
 
+      <section className="eventos" id="eventos">
+        <div className="contenedor eventos__malla revelar">
+          <div className="eventos__texto">
+            <span className="etiqueta">Recordatorios para eventos</span>
+            <h2 className="seccion-cabecera__titulo">jabones para tu celebración</h2>
+            <p>
+              Recordatorios hechos a mano con el aroma, el color y la etiqueta de tu evento.
+              Cuéntanos la fecha y la cantidad, y te enviamos opciones y precio.
+            </p>
+            <ul className="eventos__tipos">
+              {EVENTOS.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </div>
+
+          {whatsappEvento && (
+            <a
+              className="eventos__accion"
+              href={whatsappEvento}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <Boton variante="acento" icono="whatsapp">
+                Cotizar mi evento
+              </Boton>
+            </a>
+          )}
+        </div>
+      </section>
+
       <section className="cierre revelar" id="contacto">
         <div className="contenedor">
           <p className="script cierre__frase">Bienestar en cada detalle</p>
 
-          {WHATSAPP && (
-            <a
-              className="cierre__boton"
-              href={`https://wa.me/${WHATSAPP}`}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <Boton>Escríbenos por WhatsApp</Boton>
+          {whatsapp && (
+            <a className="cierre__boton" href={whatsapp} target="_blank" rel="noreferrer noopener">
+              <Boton icono="whatsapp">Escríbenos por WhatsApp</Boton>
             </a>
           )}
         </div>
@@ -205,15 +265,18 @@ export default function Tienda() {
             </div>
 
             <div className="pie__bloque">
-              <span className="etiqueta">Síguenos</span>
-              {REDES.length === 0 ? (
-                <p>Pronto por aquí.</p>
-              ) : (
-                REDES.map((r) => (
-                  <a key={r.nombre} href={r.url} target="_blank" rel="noreferrer noopener">
-                    {r.nombre}
-                  </a>
-                ))
+              <span className="etiqueta">Escríbenos</span>
+              {whatsapp && (
+                <a className="pie__red" href={whatsapp} target="_blank" rel="noreferrer noopener">
+                  <Icono nombre="whatsapp" tam={16} />
+                  WhatsApp · {telefonoLegible(contacto.whatsapp)}
+                </a>
+              )}
+              {instagram && (
+                <a className="pie__red" href={instagram} target="_blank" rel="noreferrer noopener">
+                  <Icono nombre="instagram" tam={16} />
+                  Instagram
+                </a>
               )}
             </div>
 
@@ -236,16 +299,22 @@ export default function Tienda() {
             <Icono nombre="corazon" tam={12} />
           </div>
 
-          <div className="pie__cierre">
-            <p className="pie__nota">
-              JabonesG · jabones artesanales © {new Date().getFullYear()}
-            </p>
-            <Link className="pie__admin" to="/admin">
-              Panel
-            </Link>
-          </div>
+          {/* El panel sigue en /admin, pero no se anuncia en la tienda. */}
+          <p className="pie__nota">JabonesG · jabones artesanales © {new Date().getFullYear()}</p>
         </div>
       </footer>
+
+      {whatsapp && (
+        <a
+          className="whatsapp-flotante no-imprimir"
+          href={whatsapp}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label="Escríbenos por WhatsApp"
+        >
+          <Icono nombre="whatsapp" tam={28} />
+        </a>
+      )}
 
     </div>
   );
