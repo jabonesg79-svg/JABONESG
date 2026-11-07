@@ -5,7 +5,9 @@ import {
   crearProducto,
   guardarContacto as guardarContactoEnFirestore,
   guardarPortada as guardarPortadaEnFirestore,
+  guardarTestimonios as guardarTestimoniosEnFirestore,
   leerContacto,
+  leerTestimonios,
   leerFacturas,
   leerPortada,
   leerProductos,
@@ -27,9 +29,17 @@ const traerTodo = (hayUsuario) =>
         leerFacturas(),
         leerPortada({ sinCache: true }),
         leerContacto(),
+        leerTestimonios(),
       ])
-    : Promise.all([leerProductos(), leerPortada(), leerContacto()]).then(
-        ([productos, portada, contacto]) => [productos, [], [], portada, contacto],
+    : Promise.all([leerProductos(), leerPortada(), leerContacto(), leerTestimonios()]).then(
+        ([productos, portada, contacto, testimonios]) => [
+          productos,
+          [],
+          [],
+          portada,
+          contacto,
+          testimonios,
+        ],
       );
 
 export function ProveedorDatos({ children }) {
@@ -41,6 +51,7 @@ export function ProveedorDatos({ children }) {
   // primer frame y no salte cuando llegue la configuración.
   const [portada, setPortada] = useState(PORTADA_POR_DEFECTO);
   const [contacto, setContacto] = useState(CONTACTO_POR_DEFECTO);
+  const [testimonios, setTestimonios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [intento, setIntento] = useState(0);
@@ -51,13 +62,14 @@ export function ProveedorDatos({ children }) {
     let vigente = true;
 
     traerTodo(Boolean(usuario))
-      .then(([p, v, f, portadaGuardada, contactoGuardado]) => {
+      .then(([p, v, f, portadaGuardada, contactoGuardado, testimoniosGuardados]) => {
         if (!vigente) return;
         setProductos(p);
         setVentas(v);
         setFacturas(f);
         if (portadaGuardada) setPortada(portadaGuardada);
         if (contactoGuardado) setContacto(contactoGuardado);
+        setTestimonios(testimoniosGuardados || []);
         setError(null);
         setCargando(false);
       })
@@ -109,6 +121,12 @@ export function ProveedorDatos({ children }) {
     return guardado;
   }, []);
 
+  const guardarTestimonios = useCallback(async (lista) => {
+    const guardados = await guardarTestimoniosEnFirestore(lista);
+    setTestimonios(guardados);
+    return guardados;
+  }, []);
+
   const venderCarrito = useCallback(async (datos) => {
     const resultado = await registrarVenta(datos);
     setVentas((lista) => [...resultado.ventas, ...lista]);
@@ -128,6 +146,7 @@ export function ProveedorDatos({ children }) {
       facturas,
       portada,
       contacto,
+      testimonios,
       cargando,
       error,
       recargar,
@@ -135,6 +154,7 @@ export function ProveedorDatos({ children }) {
       eliminarProducto,
       guardarPortada,
       guardarContacto,
+      guardarTestimonios,
       venderCarrito,
       setFacturas,
     }),
@@ -144,6 +164,7 @@ export function ProveedorDatos({ children }) {
       facturas,
       portada,
       contacto,
+      testimonios,
       cargando,
       error,
       recargar,
@@ -151,6 +172,7 @@ export function ProveedorDatos({ children }) {
       eliminarProducto,
       guardarPortada,
       guardarContacto,
+      guardarTestimonios,
       venderCarrito,
     ],
   );

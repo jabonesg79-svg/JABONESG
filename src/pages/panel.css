@@ -106,6 +106,17 @@
 .formulario__ancho { grid-column: 1 / -1; }
 @media (max-width: 620px) { .formulario { grid-template-columns: 1fr; } }
 
+.testimonio-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--linea);
+}
+.testimonio-editor > .campo,
+.testimonio-editor > .portada__par { width: 100%; }
+
 /* --- Fotos del producto --- */
 .fotos-editor { display: flex; flex-direction: column; gap: 12px; }
 .fotos-editor__lista {

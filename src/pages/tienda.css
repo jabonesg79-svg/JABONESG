@@ -494,17 +494,140 @@ a.nav__enlace:hover { color: var(--caramelo); }
   .eventos__accion { align-self: center; flex-shrink: 0; }
 }
 
-/* --- Cierre: banda marfil, frase script y contacto --- */
+/* --- Por qué JabonesG --- */
+
+.razones { padding: var(--seccion-corta) 0; background: var(--marfil); }
+.razones__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hueco) 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.razon { display: flex; flex-direction: column; gap: 10px; }
+.razon__icono {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--salvia-velo);
+  color: var(--salvia-honda);
+}
+.razon__titulo {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  font-size: 20px;
+  text-transform: none;
+  color: var(--cacao);
+}
+.razon__texto { font-size: 14px; color: var(--taupe); max-width: 30ch; }
+
+/* --- Cómo comprar --- */
+
+.pasos { padding: var(--seccion-corta) 0; background: var(--marfil); }
+.pasos__lista {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--hueco);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: none;
+}
+.paso {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  column-gap: 16px;
+  row-gap: 4px;
+  align-items: start;
+}
+.paso__numero {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--caramelo);
+  font-family: var(--fuente-display);
+  font-size: 20px;
+  color: var(--caramelo);
+}
+.paso__titulo {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  font-size: 20px;
+  text-transform: none;
+  color: var(--cacao);
+  align-self: center;
+}
+.paso__texto { font-size: 14px; color: var(--taupe); }
+
+/* --- Testimonios --- */
+
+.testimonios { padding: var(--seccion-corta) 0; background: var(--crema); }
+.testimonios__lista {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--hueco);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.testimonio {
+  flex: 1 1 280px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px;
+  background: var(--marfil);
+  border-radius: var(--radio-imagen);
+}
+.testimonio__texto {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--cacao);
+}
+.testimonio__autor {
+  font-size: var(--label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+@media (min-width: 861px) {
+  .razones__lista { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hueco); }
+  .pasos__lista { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .paso { grid-template-columns: 1fr; row-gap: 12px; }
+  .paso__numero { grid-row: auto; }
+}
+
+/* --- Cierre: franja delgada con la frase de marca y el contacto --- */
 
 .cierre {
   background: var(--marfil);
-  padding: var(--seccion) 0;
+  padding: var(--hueco-grande) 0;
+  border-top: 1px solid var(--linea);
+}
+.cierre__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px var(--hueco-grande);
   text-align: center;
 }
 .cierre__frase {
-  font-size: clamp(38px, 6vw, 68px);
+  font-size: clamp(30px, 4vw, 44px);
   color: var(--caramelo);
-  margin-bottom: var(--hueco-grande);
+  margin: 0;
 }
 .cierre__boton { display: inline-flex; }
 

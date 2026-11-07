@@ -1,16 +1,37 @@
 import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
-import { CONTACTO_POR_DEFECTO } from "../lib/dominio.js";
+import { CONTACTO_POR_DEFECTO, MAX_TESTIMONIOS, TESTIMONIO_VACIO } from "../lib/dominio.js";
 import { enlaceInstagram, enlaceWhatsApp, telefonoLegible } from "../lib/formato.js";
-import { Boton, Campo, Tarjeta } from "../ui/index.jsx";
+import { Area, Boton, Campo, Icono, Tarjeta } from "../ui/index.jsx";
 import { useAviso } from "../ui/contextoAvisos.js";
 import "./panel.css";
 
 export default function Contacto() {
-  const { contacto, guardarContacto } = useDatos();
+  const { contacto, guardarContacto, testimonios, guardarTestimonios } = useDatos();
   const avisar = useAviso();
   const [form, setForm] = useState(contacto);
   const [guardando, setGuardando] = useState(false);
+  const [lista, setLista] = useState(testimonios);
+  const [guardandoLista, setGuardandoLista] = useState(false);
+
+  const listaCambio = JSON.stringify(lista) !== JSON.stringify(testimonios);
+  const aMedias = lista.filter((t) => !t.nombre.trim() || !t.texto.trim()).length;
+
+  const cambiarTestimonio = (i, clave) => (e) =>
+    setLista((l) => l.map((t, j) => (j === i ? { ...t, [clave]: e.target.value } : t)));
+
+  const guardarLista = async () => {
+    setGuardandoLista(true);
+    try {
+      setLista(await guardarTestimonios(lista));
+      avisar("Testimonios actualizados", "exito");
+    } catch (err) {
+      console.error("[testimonios] falló el guardado", err);
+      avisar(`No se pudo guardar: ${err?.code || err?.message || err}`, "peligro");
+    } finally {
+      setGuardandoLista(false);
+    }
+  };
 
   const campo = (clave) => (e) => setForm((f) => ({ ...f, [clave]: e.target.value }));
 
@@ -40,7 +61,7 @@ export default function Contacto() {
       <header className="cabecera-pagina">
         <div>
           <h1>Contacto</h1>
-          <p>Los botones de WhatsApp y los enlaces del pie de la tienda salen de aquí.</p>
+          <p>WhatsApp, Instagram y testimonios de la tienda.</p>
         </div>
         <div className="cabecera-pagina__acciones">
           <Boton onClick={guardar} disabled={guardando || !hayCambios} icono="chequeo">
@@ -85,6 +106,74 @@ export default function Contacto() {
               )
             }
           />
+        </div>
+      </Tarjeta>
+
+      <Tarjeta className="bloque" style={{ marginTop: 24 }}>
+        <div className="bloque__cabecera">
+          <h2 className="bloque__titulo">Testimonios</h2>
+          <Boton
+            tamano="pequeno"
+            icono="chequeo"
+            onClick={guardarLista}
+            disabled={guardandoLista || !listaCambio}
+          >
+            {guardandoLista ? "Guardando..." : "Guardar testimonios"}
+          </Boton>
+        </div>
+
+        <div className="bloque__cuerpo--aire portada__campos">
+          <p className="campo__pista">
+            Solo testimonios reales, con permiso de quien los dio. Mientras no haya ninguno
+            guardado, la sección no aparece en la tienda. Máximo {MAX_TESTIMONIOS}.
+          </p>
+
+          {lista.map((t, i) => (
+            <div key={i} className="testimonio-editor">
+              <div className="portada__par">
+                <Campo etiqueta="Nombre" value={t.nombre} onChange={cambiarTestimonio(i, "nombre")} />
+                <Campo
+                  etiqueta="Ciudad (opcional)"
+                  value={t.ciudad}
+                  onChange={cambiarTestimonio(i, "ciudad")}
+                />
+              </div>
+              <Area
+                etiqueta="Testimonio"
+                value={t.texto}
+                onChange={cambiarTestimonio(i, "texto")}
+                maxLength={280}
+                pista={`${t.texto.length} de 280 caracteres`}
+              />
+              <Boton
+                variante="fantasma"
+                tamano="pequeno"
+                icono="basura"
+                onClick={() => setLista((l) => l.filter((_, j) => j !== i))}
+              >
+                Quitar
+              </Boton>
+            </div>
+          ))}
+
+          {lista.length < MAX_TESTIMONIOS && (
+            <Boton
+              variante="contorno"
+              icono="mas"
+              style={{ alignSelf: "flex-start" }}
+              onClick={() => setLista((l) => [...l, { ...TESTIMONIO_VACIO }])}
+            >
+              Agregar testimonio
+            </Boton>
+          )}
+
+          {aMedias > 0 && (
+            <p className="portada__error">
+              <Icono nombre="alerta" tam={13} grosor={2.2} /> {aMedias}{" "}
+              {aMedias === 1 ? "testimonio no tiene" : "testimonios no tienen"} nombre o texto y
+              no se guardará.
+            </p>
+          )}
         </div>
       </Tarjeta>
     </>

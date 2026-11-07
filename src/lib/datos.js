@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { hoyISO } from "./formato.js";
-import { CONTACTO_POR_DEFECTO, PORTADA_POR_DEFECTO } from "./dominio.js";
+import { CONTACTO_POR_DEFECTO, MAX_TESTIMONIOS, PORTADA_POR_DEFECTO } from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
 
 const conId = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -334,4 +334,37 @@ export async function guardarContacto(datos) {
   );
   await setDoc(doc(db, ...CONTACTO), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
   return leerContacto();
+}
+
+/* ---------- Testimonios ---------- */
+
+const TESTIMONIOS = ["configuracion", "testimonios"];
+
+/** Solo los que tienen texto y nombre: uno a medio llenar no se publica. */
+const limpiarTestimonios = (lista = []) =>
+  lista
+    .map((t) => ({
+      nombre: String(t.nombre || "").trim(),
+      ciudad: String(t.ciudad || "").trim(),
+      texto: String(t.texto || "").trim(),
+    }))
+    .filter((t) => t.nombre && t.texto)
+    .slice(0, MAX_TESTIMONIOS);
+
+export async function leerTestimonios() {
+  try {
+    const snap = await getDoc(doc(db, ...TESTIMONIOS));
+    return snap.exists() ? limpiarTestimonios(snap.data().lista) : [];
+  } catch (error) {
+    console.error("[testimonios] no se pudieron leer", error);
+    return [];
+  }
+}
+
+export async function guardarTestimonios(lista) {
+  await setDoc(doc(db, ...TESTIMONIOS), {
+    lista: limpiarTestimonios(lista),
+    actualizado: serverTimestamp(),
+  });
+  return leerTestimonios();
 }

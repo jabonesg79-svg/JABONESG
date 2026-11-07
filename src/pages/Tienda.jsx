@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
 import Ficha from "./Ficha.jsx";
+import { ComoComprar, PorQue, Testimonios } from "./SeccionesInicio.jsx";
 import { EJEMPLOS } from "../lib/ejemplos.js";
 import {
   BENEFICIOS,
@@ -30,6 +31,7 @@ const PAGOS = ["Efectivo", "Transferencia bancaria", "Nequi y Daviplata"];
 /** Solo secciones que existen: un enlace que no lleva a ninguna parte se ve roto. */
 const NAVEGACION = [
   { texto: "Catálogo", destino: "#catalogo" },
+  { texto: "Nosotros", destino: "#nosotros" },
   { texto: "Eventos", destino: "#eventos" },
   { texto: "Contacto", destino: "#contacto" },
 ];
@@ -53,7 +55,7 @@ const MENSAJE_EVENTO =
   "Hola JabonesG, quiero cotizar recordatorios de jabón para un evento. Tipo de evento: ___ · Fecha: ___ · Cantidad aproximada: ___";
 
 export default function Tienda() {
-  const { productos, portada, contacto, cargando } = useDatos();
+  const { productos, portada, contacto, testimonios, cargando } = useDatos();
   const [busqueda, setBusqueda] = useState("");
   const [beneficio, setBeneficio] = useState("todos");
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -269,6 +271,8 @@ export default function Tienda() {
         </div>
       </section>
 
+      <PorQue />
+
       <section className="eventos" id="eventos">
         <div className="contenedor eventos__malla revelar">
           <div className="eventos__texto">
@@ -300,8 +304,13 @@ export default function Tienda() {
         </div>
       </section>
 
+      <ComoComprar />
+
+      <Testimonios lista={testimonios} />
+
+      {/* Franja delgada: la frase de marca cierra la página junto al contacto. */}
       <section className="cierre revelar" id="contacto">
-        <div className="contenedor">
+        <div className="contenedor cierre__fila">
           <p className="script cierre__frase">Bienestar en cada detalle</p>
 
           {whatsapp && (

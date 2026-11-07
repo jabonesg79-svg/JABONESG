@@ -147,6 +147,11 @@ export const CONTACTO_POR_DEFECTO = {
   instagram: "",
 };
 
+/** Testimonios de clientes. Arrancan vacíos: la sección no se muestra hasta
+    que se cargue uno real desde el panel. */
+export const MAX_TESTIMONIOS = 6;
+export const TESTIMONIO_VACIO = { nombre: "", ciudad: "", texto: "" };
+
 /** Largo sugerido del párrafo del hero, no impuesto. */
 export const LARGO_PARRAFO_PORTADA = 160;
 
