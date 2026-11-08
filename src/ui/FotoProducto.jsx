@@ -8,19 +8,19 @@ import { leerFoto } from "../lib/datos.js";
  * aparece (la ficha la pide al abrirse, nunca el catálogo). Mientras carga no
  * pinta nada y se ve el fondo del marco.
  */
-export default function FotoProducto({ productoId, foto, version = "grande", ...resto }) {
+export default function FotoProducto({ productoId, foto, version = "grande", coleccion = "productos", ...resto }) {
   const [cargada, setCargada] = useState({ clave: null, url: "" });
   const esUrl = esUrlFoto(foto);
-  const clave = `${productoId}/${foto}/${version}`;
+  const clave = `${coleccion}/${productoId}/${foto}/${version}`;
 
   useEffect(() => {
     if (esUrl || !productoId || !foto) return undefined;
     let vigente = true;
-    leerFoto(productoId, foto).then((f) => vigente && setCargada({ clave, url: f[version] }));
+    leerFoto(productoId, foto, coleccion).then((f) => vigente && setCargada({ clave, url: f[version] }));
     return () => {
       vigente = false;
     };
-  }, [clave, esUrl, productoId, foto, version]);
+  }, [clave, esUrl, productoId, foto, version, coleccion]);
 
   const url = esUrl ? foto : cargada.clave === clave ? cargada.url : "";
   if (!url) return null;

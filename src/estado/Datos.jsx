@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  actualizarDiseno as actualizarDisenoEnFirestore,
   actualizarPedidoWeb as actualizarPedidoWebEnFirestore,
+  borrarDiseno,
+  borrarTipoEvento,
+  guardarDiseno as guardarDisenoEnFirestore,
+  guardarTipoEvento as guardarTipoEventoEnFirestore,
+  leerDisenos,
+  leerTiposEvento,
   actualizarProducto,
   anularComprobante as anularComprobanteEnFirestore,
   borrarProducto,
@@ -32,7 +39,7 @@ import { DatosCtx, useSesion } from "./contextos.js";
 /** El visitante solo lee lo que pinta la tienda; el panel carga además
     ventas, comprobantes y pedidos de eventos. */
 const traerTodo = async (hayUsuario) => {
-  const [productos, portada, contacto, testimonios, configEventos] = await Promise.all([
+  const [productos, portada, contacto, testimonios, configEventos, tiposEvento, disenos] = await Promise.all([
     leerProductos(),
     // En el panel se lee siempre del servidor: quien edita debe ver el
     // documento real, no una copia guardada en la pestaña.
@@ -40,12 +47,13 @@ const traerTodo = async (hayUsuario) => {
     leerContacto(),
     leerTestimonios(),
     leerConfigEventos(),
+    // Tipos y diseños de eventos: los lee también la tienda.
+    leerTiposEvento(),
+    leerDisenos(),
   ]);
+  const publico = { productos, portada, contacto, testimonios, configEventos, tiposEvento, disenos };
   if (!hayUsuario) {
-    return {
-      productos, portada, contacto, testimonios, configEventos,
-      ventas: [], facturas: [], pedidosEventos: [], pedidosWeb: [],
-    };
+    return { ...publico, ventas: [], facturas: [], pedidosEventos: [], pedidosWeb: [] };
   }
   const [ventas, facturas, pedidosEventos, pedidosWeb] = await Promise.all([
     leerVentas(),
@@ -53,7 +61,7 @@ const traerTodo = async (hayUsuario) => {
     leerPedidosEventos(),
     leerPedidosWeb(),
   ]);
-  return { productos, portada, contacto, testimonios, configEventos, ventas, facturas, pedidosEventos, pedidosWeb };
+  return { ...publico, ventas, facturas, pedidosEventos, pedidosWeb };
 };
 
 export function ProveedorDatos({ children }) {
@@ -68,6 +76,8 @@ export function ProveedorDatos({ children }) {
   const [testimonios, setTestimonios] = useState([]);
   const [pedidosEventos, setPedidosEventos] = useState([]);
   const [pedidosWeb, setPedidosWeb] = useState([]);
+  const [tiposEvento, setTiposEvento] = useState([]);
+  const [disenos, setDisenos] = useState([]);
   const [configEventos, setConfigEventos] = useState(CONFIG_EVENTOS_POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -89,6 +99,8 @@ export function ProveedorDatos({ children }) {
         setTestimonios(d.testimonios || []);
         setPedidosEventos(d.pedidosEventos || []);
         setPedidosWeb(d.pedidosWeb || []);
+        setTiposEvento(d.tiposEvento || []);
+        setDisenos(d.disenos || []);
         if (d.configEventos) setConfigEventos(d.configEventos);
         setError(null);
         setCargando(false);
@@ -166,6 +178,44 @@ export function ProveedorDatos({ children }) {
     return guardada;
   }, []);
 
+  const guardarTipoEvento = useCallback(async (datos, id) => {
+    const guardado = await guardarTipoEventoEnFirestore(datos, id);
+    setTiposEvento((lista) =>
+      (id ? lista.map((t) => (t.id === id ? { ...t, ...guardado } : t)) : [...lista, guardado]).sort(
+        (a, b) => (a.orden || 0) - (b.orden || 0),
+      ),
+    );
+    return guardado;
+  }, []);
+
+  const eliminarTipoEvento = useCallback(async (id) => {
+    await borrarTipoEvento(id);
+    setTiposEvento((lista) => lista.filter((t) => t.id !== id));
+  }, []);
+
+  const guardarDiseno = useCallback(async (datos, id) => {
+    const guardado = await guardarDisenoEnFirestore(datos, id);
+    setDisenos((lista) =>
+      (lista.some((d) => d.id === id) ? lista.map((d) => (d.id === id ? guardado : d)) : [...lista, guardado]).sort(
+        (a, b) => (a.orden || 0) - (b.orden || 0),
+      ),
+    );
+    return guardado;
+  }, []);
+
+  /** Cambios sueltos (activar, ordenar) sin pasar por el formulario. */
+  const actualizarDiseno = useCallback(async (id, cambios) => {
+    await actualizarDisenoEnFirestore(id, cambios);
+    setDisenos((lista) =>
+      lista.map((d) => (d.id === id ? { ...d, ...cambios } : d)).sort((a, b) => (a.orden || 0) - (b.orden || 0)),
+    );
+  }, []);
+
+  const eliminarDiseno = useCallback(async (id) => {
+    await borrarDiseno(id);
+    setDisenos((lista) => lista.filter((d) => d.id !== id));
+  }, []);
+
   const actualizarPedidoWeb = useCallback(async (id, cambios) => {
     await actualizarPedidoWebEnFirestore(id, cambios);
     setPedidosWeb((lista) => lista.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
@@ -218,6 +268,8 @@ export function ProveedorDatos({ children }) {
       testimonios,
       pedidosEventos,
       pedidosWeb,
+      tiposEvento,
+      disenos,
       configEventos,
       cargando,
       error,
@@ -231,6 +283,11 @@ export function ProveedorDatos({ children }) {
       eliminarPedidoEvento,
       guardarConfigEventos,
       actualizarPedidoWeb,
+      guardarTipoEvento,
+      eliminarTipoEvento,
+      guardarDiseno,
+      actualizarDiseno,
+      eliminarDiseno,
       anularComprobante,
       venderCarrito,
       setFacturas,
@@ -244,6 +301,8 @@ export function ProveedorDatos({ children }) {
       testimonios,
       pedidosEventos,
       pedidosWeb,
+      tiposEvento,
+      disenos,
       configEventos,
       cargando,
       error,
@@ -257,6 +316,11 @@ export function ProveedorDatos({ children }) {
       eliminarPedidoEvento,
       guardarConfigEventos,
       actualizarPedidoWeb,
+      guardarTipoEvento,
+      eliminarTipoEvento,
+      guardarDiseno,
+      actualizarDiseno,
+      eliminarDiseno,
       anularComprobante,
       venderCarrito,
     ],

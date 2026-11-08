@@ -323,13 +323,88 @@ export const PEDIDO_EVENTO_VACIO = {
   estado: ESTADOS_EVENTO[0],
 };
 
-/** Lo que la sección Eventos de la tienda muestra. Vacío = la tienda no
-    muestra precios ni condiciones, solo la invitación a cotizar. */
+export const TEXTO_PEDIDO_PEQUENO =
+  "Para pedidos pequeños pagas el total al confirmar y empezamos la producción.";
+
+/** Condiciones generales de eventos. Mínimo y anticipación valen para los
+    diseños que no tienen los suyos; el anticipo se pide desde `umbralAnticipo`
+    unidades. (`precios` y `empaques` son del esquema anterior: la tienda los
+    usa hasta que el recorrido por pasos los reemplace.) */
 export const CONFIG_EVENTOS_POR_DEFECTO = {
   precios: [],
   pedidoMinimo: 0,
   diasAnticipacion: 0,
   empaques: [],
+  umbralAnticipo: 0,
+  porcentajeAnticipo: 50,
+  textoPedidoPequeno: TEXTO_PEDIDO_PEQUENO,
+};
+
+/* ---------- Eventos: tipos y diseños ---------- */
+
+/** Un tipo "activo" se ofrece si tiene al menos un diseño activo; uno
+    "próximamente" se muestra en la tienda pero lleva a WhatsApp. */
+export const ESTADOS_TIPO_EVENTO = { activo: "Activo", proximamente: "Próximamente" };
+
+export const TIPO_EVENTO_VACIO = { nombre: "", foto: "", estado: "activo" };
+
+/** Las dos presentaciones con precio propio. */
+export const PRESENTACIONES_EVENTO = [
+  { id: "solo", texto: "Jabón solo (sin empaque)", corto: "Jabón solo" },
+  { id: "empacado", texto: "Empacado listo para el evento", corto: "Empacado" },
+];
+
+export const DISENO_VACIO = {
+  nombre: "",
+  descripcion: "",
+  tipos: [],
+  colores: [],
+  aromas: [],
+  precios: { solo: [], empacado: [] },
+  minimo: "",
+  anticipacion: "",
+  activo: true,
+};
+
+/** Precio por unidad en una lista de tramos: el más alto que la cantidad alcanza. */
+export const precioEnTramos = (tramos, cantidad) => {
+  const n = Number(cantidad) || 0;
+  const validos = [...(tramos || [])]
+    .filter((t) => Number(t.precio) > 0)
+    .sort((a, b) => Number(a.desde) - Number(b.desde));
+  const aplica = validos.filter((t) => n >= (Number(t.desde) || 0)).pop();
+  return aplica ? Number(aplica.precio) : 0;
+};
+
+/** El precio más bajo de un diseño, entre sus dos presentaciones: "desde $X c/u". */
+export const desdeDiseno = (diseno) => {
+  const precios = PRESENTACIONES_EVENTO.flatMap((p) => diseno?.precios?.[p.id] || [])
+    .map((t) => Number(t.precio))
+    .filter((x) => x > 0);
+  return precios.length ? Math.min(...precios) : 0;
+};
+
+/** Mínimo y anticipación del diseño; vacíos, los generales. */
+export const condicionesDiseno = (diseno, config) => ({
+  minimo: Number(diseno?.minimo) || Number(config?.pedidoMinimo) || 0,
+  anticipacion: Number(diseno?.anticipacion) || Number(config?.diasAnticipacion) || 0,
+});
+
+/** Anticipo de un pedido: aplica desde el umbral configurado (0 = nunca). */
+export const anticipoPedido = (config, cantidad, total) => {
+  const umbral = Number(config?.umbralAnticipo) || 0;
+  const porcentaje = Number(config?.porcentajeAnticipo) || 0;
+  const aplica = umbral > 0 && porcentaje > 0 && (Number(cantidad) || 0) >= umbral;
+  return { aplica, umbral, porcentaje, valor: aplica ? Math.round(((Number(total) || 0) * porcentaje) / 100) : 0 };
+};
+
+/** Texto de condiciones de pago que ve la clienta. */
+export const textoAnticipo = (config, cantidad, total) => {
+  const a = anticipoPedido(config, cantidad, total);
+  if (a.aplica) {
+    return `Para pedidos desde ${a.umbral} unidades pedimos el ${a.porcentaje}% de anticipo para iniciar la producción: ${money(a.valor)}. El saldo se paga al entregar.`;
+  }
+  return String(config?.textoPedidoPequeno || "").trim() || TEXTO_PEDIDO_PEQUENO;
 };
 
 export const totalPedido = (p) =>

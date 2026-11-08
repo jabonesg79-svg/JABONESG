@@ -739,3 +739,163 @@
   .pedido-web__acciones > a,
   .pedido-web__acciones .boton { width: 100%; }
 }
+
+/* --- Eventos: pestañas y catálogo del recorrido --- */
+.pestanas {
+  display: flex;
+  gap: 4px;
+  margin: -8px 0 22px;
+  border-bottom: 1px solid var(--linea);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pestanas::-webkit-scrollbar { display: none; }
+.pestanas__boton {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--taupe);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.pestanas__boton:hover { color: var(--cacao); }
+.pestanas__boton.activo { color: var(--cacao); border-bottom-color: var(--caramelo); font-weight: 600; }
+.pestana-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.pestana-cabecera p { color: var(--taupe); font-size: 13.5px; max-width: 70ch; }
+.pestana-cabecera .boton { flex-shrink: 0; }
+
+.catalogo-eventos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--marfil);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-imagen);
+}
+.catalogo-eventos__item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+}
+.catalogo-eventos__item + .catalogo-eventos__item { border-top: 1px solid var(--linea); }
+.catalogo-eventos__item--apagado .catalogo-eventos__foto,
+.catalogo-eventos__item--apagado .catalogo-eventos__nombre { opacity: 0.55; }
+.catalogo-eventos__foto {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radio-imagen);
+  overflow: hidden;
+  background: var(--crema);
+  display: grid;
+  place-items: center;
+  color: var(--beige);
+}
+.catalogo-eventos__foto img { width: 100%; height: 100%; object-fit: cover; }
+.catalogo-eventos__foto--grande { width: 96px; height: 96px; }
+.catalogo-eventos__texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.catalogo-eventos__nombre { font-family: var(--fuente-display); font-size: 17px; color: var(--cacao); }
+.catalogo-eventos__acciones { display: flex; align-items: center; gap: 2px; }
+.ordenar { display: inline-flex; flex-direction: column; margin-right: 4px; }
+.ordenar button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 22px;
+  border: 0;
+  background: none;
+  color: var(--taupe);
+}
+.ordenar button:disabled { color: var(--beige); }
+.muestras { display: inline-flex; gap: 5px; margin-top: 3px; }
+.muestra { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--linea); }
+
+.conmutador {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--taupe);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+.conmutador__pista {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radio-pildora);
+  background: var(--beige);
+  transition: background var(--transicion);
+}
+.conmutador__pista::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--marfil);
+  transition: transform var(--transicion);
+}
+.conmutador.activo { color: var(--salvia-honda); }
+.conmutador.activo .conmutador__pista { background: var(--salvia); }
+.conmutador.activo .conmutador__pista::after { transform: translateX(16px); }
+
+.tipo-foto { display: flex; align-items: center; gap: 16px; }
+.tipo-foto__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-fila { display: flex; align-items: center; gap: 10px; }
+.color-fila .campo__control { flex: 1; min-width: 0; }
+.color-fila__muestra {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--linea);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.color-fila__muestra::-webkit-color-swatch-wrapper { padding: 3px; }
+.color-fila__muestra::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.color-fila button { border: 0; background: none; color: var(--taupe); padding: 8px; }
+.condiciones-vista { display: grid; gap: 10px; }
+.condiciones-vista p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: none;
+  padding: 12px 14px;
+  border-left: 3px solid var(--caramelo);
+  border-radius: var(--radio-imagen);
+  background: var(--caramelo-velo);
+  color: var(--cacao);
+  font-size: 13.5px;
+}
+.condiciones-vista strong { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--caramelo-hondo); }
+
+@media (max-width: 860px) {
+  .pestana-cabecera { flex-direction: column; align-items: stretch; }
+  .catalogo-eventos__item { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px 12px; padding: 12px 14px; }
+  .catalogo-eventos__foto { width: 56px; height: 56px; }
+  .catalogo-eventos__acciones { grid-column: 1 / -1; justify-content: flex-end; border-top: 1px dashed var(--linea); padding-top: 6px; }
+  .ordenar { flex-direction: row; margin-right: auto; }
+  .ordenar button { width: 40px; height: 36px; }
+}

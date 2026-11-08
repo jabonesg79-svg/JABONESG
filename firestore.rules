@@ -24,6 +24,24 @@ service cloud.firestore {
       }
     }
 
+    // Recorrido de cotización de eventos: tipos de evento y diseños (con sus
+    // colores, aromas y precios). La tienda los lee sin sesión; solo el admin
+    // los crea o cambia. Las fotos de cada diseño van una por documento, como
+    // las de los jabones.
+    match /tiposEvento/{tipoId} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+    match /disenos/{disenoId} {
+      allow read: if true;
+      allow write: if esAdmin();
+
+      match /imagenes/{imagenId} {
+        allow read: if true;
+        allow write: if esAdmin();
+      }
+    }
+
     // Configuración que pinta la tienda: portada (hero), contacto (WhatsApp e
     // Instagram), testimonios y eventos (precio desde, mínimo, anticipación y
     // empaques). Lectura pública solo de esos cuatro documentos.

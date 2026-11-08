@@ -16,6 +16,7 @@ import {
 import { diaISO, enlaceWhatsApp, fechaCorta, money, num } from "../lib/formato.js";
 import { Area, Boton, Campo, Icono, Insignia, Modal, Selector, Tarjeta, Vacio } from "../ui/index.jsx";
 import { useAviso } from "../ui/contextoAvisos.js";
+import { CondicionesEventos, DisenosEvento, TiposEvento } from "./EventosCatalogo.jsx";
 import "./panel.css";
 
 const FILTROS = [{ id: "activos", texto: "Activos" }, ...ESTADOS_EVENTO.map((e) => ({ id: e, texto: e })), { id: "todos", texto: "Todos" }];
@@ -58,9 +59,51 @@ const mensajeCliente = (p) => {
     .join(" ");
 };
 
+const PESTANAS = [
+  { id: "pedidos", texto: "Pedidos" },
+  { id: "disenos", texto: "Diseños" },
+  { id: "tipos", texto: "Tipos", resto: " de evento" },
+  { id: "condiciones", texto: "Condiciones" },
+];
+
+/** Eventos en pestañas: los pedidos del día a día y, aparte, lo que arma el
+    recorrido de la tienda (diseños, tipos y condiciones de pago). */
 export default function Eventos() {
-  const { pedidosEventos, configEventos, guardarPedidoEvento, eliminarPedidoEvento, guardarConfigEventos } =
-    useDatos();
+  const [pestana, setPestana] = useState("pedidos");
+  return (
+    <>
+      <header className="cabecera-pagina">
+        <div>
+          <h1>Eventos</h1>
+          <p>Recordatorios para matrimonios, baby showers y demás celebraciones.</p>
+        </div>
+      </header>
+
+      <div className="pestanas" role="tablist" aria-label="Secciones de eventos">
+        {PESTANAS.map((p) => (
+          <button
+            key={p.id}
+            role="tab"
+            aria-selected={pestana === p.id}
+            className={`pestanas__boton ${pestana === p.id ? "activo" : ""}`}
+            onClick={() => setPestana(p.id)}
+          >
+            {p.texto}
+            {p.resto && <span className="solo-escritorio">{p.resto}</span>}
+          </button>
+        ))}
+      </div>
+
+      {pestana === "pedidos" && <PedidosEventos />}
+      {pestana === "disenos" && <DisenosEvento />}
+      {pestana === "tipos" && <TiposEvento />}
+      {pestana === "condiciones" && <CondicionesEventos />}
+    </>
+  );
+}
+
+function PedidosEventos() {
+  const { pedidosEventos, configEventos, guardarPedidoEvento, eliminarPedidoEvento } = useDatos();
   const avisar = useAviso();
 
   const [filtro, setFiltro] = useState("activos");
@@ -69,7 +112,6 @@ export default function Eventos() {
   const [guardando, setGuardando] = useState(false);
   const [aBorrar, setABorrar] = useState(null);
   const [abono, setAbono] = useState({ monto: "", metodo: METODOS_PAGO[0], fecha: diaISO() });
-  const [config, setConfig] = useState(null);
 
   const visibles = useMemo(
     () =>
@@ -167,56 +209,17 @@ export default function Eventos() {
     }
   };
 
-  /* ---------- Configuración ---------- */
-
-  const abrirConfig = () =>
-    setConfig({
-      ...configEventos,
-      precios: (configEventos.precios || []).map((t) => ({ desde: String(t.desde), precio: String(t.precio) })),
-      empaques: [...(configEventos.empaques || [])],
-      nuevoEmpaque: "",
-    });
-
-  const cambiarTramo = (i, clave) => (e) =>
-    setConfig((c) => ({ ...c, precios: c.precios.map((t, j) => (j === i ? { ...t, [clave]: e.target.value } : t)) }));
-
-  const agregarEmpaque = () =>
-    setConfig((c) =>
-      c.nuevoEmpaque.trim() ? { ...c, empaques: [...c.empaques, c.nuevoEmpaque.trim()], nuevoEmpaque: "" } : c,
-    );
-
-  const guardarConfig = async () => {
-    setGuardando(true);
-    try {
-      await guardarConfigEventos(config);
-      avisar("Precios y opciones guardados", "exito");
-      setConfig(null);
-    } catch (err) {
-      avisar(`No se pudo guardar: ${err.message}`, "peligro");
-    } finally {
-      setGuardando(false);
-    }
-  };
-
   return (
     <>
-      <header className="cabecera-pagina">
-        <div>
-          <h1>Eventos</h1>
-          <p>
-            {pedidosEventos.filter((p) => ESTADOS_EVENTO_ACTIVOS.includes(p.estado)).length} pedidos activos ·{" "}
-            {money(porCobrar)} por cobrar
-          </p>
-        </div>
-        <div className="cabecera-pagina__acciones">
-          <Boton variante="contorno" icono="etiqueta" onClick={abrirConfig}>
-            Precios y opciones
-          </Boton>
-          <Boton icono="mas" onClick={abrirNuevo}>
-            Nuevo pedido
-          </Boton>
-        </div>
-      </header>
+      <div className="pestana-cabecera">
+        <p>
+          {pedidosEventos.filter((p) => ESTADOS_EVENTO_ACTIVOS.includes(p.estado)).length} pedidos activos ·{" "}
+          {money(porCobrar)} por cobrar
+        </p>
+        <Boton icono="mas" onClick={abrirNuevo}>
+          Nuevo pedido
+        </Boton>
+      </div>
 
       <div className="chips chips--fila" style={{ marginBottom: 20 }}>
         {FILTROS.map((f) => (
@@ -483,129 +486,6 @@ export default function Eventos() {
               </div>
             )}
           </form>
-        </Modal>
-      )}
-
-      {config && (
-        <Modal
-          titulo="Precios y opciones"
-          alCerrar={() => setConfig(null)}
-          pie={
-            <>
-              <Boton variante="contorno" onClick={() => setConfig(null)}>
-                Cancelar
-              </Boton>
-              <Boton onClick={guardarConfig} disabled={guardando} icono="chequeo">
-                {guardando ? "Guardando..." : "Guardar"}
-              </Boton>
-            </>
-          }
-        >
-          <div className="portada__campos">
-            <p className="campo__pista">
-              La tienda muestra el precio más bajo («desde $X por unidad»), el pedido mínimo, la
-              anticipación y los empaques. El detalle se conversa por WhatsApp.
-            </p>
-
-            <div className="campo">
-              <span className="campo__etiqueta">Precio por cantidad</span>
-              {config.precios.map((t, i) => (
-                <div key={i} className="tramo">
-                  <span>Desde</span>
-                  <input
-                    className="campo__control"
-                    type="number"
-                    min="0"
-                    placeholder="Ej.: 20"
-                    aria-label="Desde cuántas unidades"
-                    value={t.desde}
-                    onChange={cambiarTramo(i, "desde")}
-                  />
-                  <span>unid. a</span>
-                  <input
-                    className="campo__control"
-                    type="number"
-                    min="0"
-                    placeholder="Ej.: 4500"
-                    aria-label="Precio por unidad"
-                    value={t.precio}
-                    onChange={cambiarTramo(i, "precio")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, precios: c.precios.filter((_, j) => j !== i) }))}
-                    aria-label="Quitar tramo"
-                  >
-                    <Icono nombre="basura" tam={14} />
-                  </button>
-                </div>
-              ))}
-              <Boton
-                variante="contorno"
-                tamano="pequeno"
-                icono="mas"
-                style={{ alignSelf: "flex-start" }}
-                onClick={() => setConfig((c) => ({ ...c, precios: [...c.precios, { desde: "", precio: "" }] }))}
-              >
-                Agregar tramo
-              </Boton>
-            </div>
-
-            <div className="portada__par">
-              <Campo
-                etiqueta="Pedido mínimo (unidades)"
-                type="number"
-                min="0"
-                placeholder="Ej.: 20"
-                value={config.pedidoMinimo || ""}
-                onChange={(e) => setConfig((c) => ({ ...c, pedidoMinimo: e.target.value }))}
-              />
-              <Campo
-                etiqueta="Días de anticipación"
-                type="number"
-                min="0"
-                placeholder="Ej.: 15"
-                value={config.diasAnticipacion || ""}
-                onChange={(e) => setConfig((c) => ({ ...c, diasAnticipacion: e.target.value }))}
-              />
-            </div>
-
-            <div className="campo">
-              <span className="campo__etiqueta">Opciones de empaque</span>
-              {config.empaques.length > 0 && (
-                <div className="chips" style={{ margin: 0 }}>
-                  {config.empaques.map((e, i) => (
-                    <button
-                      key={e}
-                      type="button"
-                      className="chip activo"
-                      onClick={() => setConfig((c) => ({ ...c, empaques: c.empaques.filter((_, j) => j !== i) }))}
-                      aria-label={`Quitar ${e}`}
-                    >
-                      {e} ×
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="abonos__nuevo">
-                <input
-                  className="campo__control"
-                  placeholder="Ej.: Caja kraft con visor"
-                  value={config.nuevoEmpaque}
-                  onChange={(e) => setConfig((c) => ({ ...c, nuevoEmpaque: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      agregarEmpaque();
-                    }
-                  }}
-                />
-                <Boton type="button" variante="contorno" tamano="pequeno" icono="mas" onClick={agregarEmpaque}>
-                  Agregar
-                </Boton>
-              </div>
-            </div>
-          </div>
         </Modal>
       )}
 

@@ -57,23 +57,25 @@ export async function borrarProducto(id) {
   await deleteDoc(doc(db, "productos", id));
 }
 
-/* ---------- Fotos de producto ----------
-   Una foto por documento en `productos/{id}/imagenes/{fotoId}`, con la versión
-   grande y la miniatura. Nunca dentro del documento del producto. */
+/* ---------- Fotos de producto y de diseño ----------
+   Una foto por documento en `{coleccion}/{id}/imagenes/{fotoId}`, con la
+   versión grande y la miniatura. Nunca dentro del documento del jabón o del
+   diseño. `coleccion` es "productos" (jabones) o "disenos" (eventos). */
 
 /** Una promesa por foto: la misma se pide una sola vez por pestaña aunque la
     muestren la ficha y el panel. */
 const fotosEnMemoria = new Map();
 
-const refFoto = (productoId, fotoId) => doc(db, "productos", productoId, "imagenes", fotoId);
+const refFoto = (productoId, fotoId, coleccion = "productos") =>
+  doc(db, coleccion, productoId, "imagenes", fotoId);
 
 /** Devuelve { grande, miniatura }, vacíos si la foto no existe o falla la lectura. */
-export function leerFoto(productoId, fotoId) {
-  const clave = `${productoId}/${fotoId}`;
+export function leerFoto(productoId, fotoId, coleccion = "productos") {
+  const clave = `${coleccion}/${productoId}/${fotoId}`;
   if (!fotosEnMemoria.has(clave)) {
     fotosEnMemoria.set(
       clave,
-      getDoc(refFoto(productoId, fotoId))
+      getDoc(refFoto(productoId, fotoId, coleccion))
         .then((snap) => {
           const d = snap.exists() ? snap.data() : {};
           return { grande: d.grande || "", miniatura: d.miniatura || "" };
@@ -92,7 +94,11 @@ export function leerFoto(productoId, fotoId) {
 /** Margen bajo el 1 MB por documento para nombres de campo y metadatos. */
 const TOPE_DOCUMENTO_FOTO = 1000000;
 
-export async function guardarFoto(productoId, { grande, miniatura, ancho, alto, pesoOriginal }) {
+export async function guardarFoto(
+  productoId,
+  { grande, miniatura, ancho, alto, pesoOriginal },
+  coleccion = "productos",
+) {
   const total = grande.length + miniatura.length;
   if (total > TOPE_DOCUMENTO_FOTO) {
     throw new Error(
@@ -100,18 +106,18 @@ export async function guardarFoto(productoId, { grande, miniatura, ancho, alto, 
         `${Math.round(TOPE_DOCUMENTO_FOTO / 1024)} KB.`,
     );
   }
-  const ref = doc(collection(db, "productos", productoId, "imagenes"));
+  const ref = doc(collection(db, coleccion, productoId, "imagenes"));
   await setDoc(ref, { grande, miniatura, ancho, alto, pesoOriginal, creado: hoyISO() });
-  fotosEnMemoria.set(`${productoId}/${ref.id}`, Promise.resolve({ grande, miniatura }));
+  fotosEnMemoria.set(`${coleccion}/${productoId}/${ref.id}`, Promise.resolve({ grande, miniatura }));
   return ref.id;
 }
 
 /** Borra sin frenar el flujo: si una falla queda huérfana, pero lo demás sigue. */
-export async function borrarFotos(productoId, ids) {
+export async function borrarFotos(productoId, ids, coleccion = "productos") {
   await Promise.all(
     ids.map((id) => {
-      fotosEnMemoria.delete(`${productoId}/${id}`);
-      return deleteDoc(refFoto(productoId, id)).catch((e) =>
+      fotosEnMemoria.delete(`${coleccion}/${productoId}/${id}`);
+      return deleteDoc(refFoto(productoId, id, coleccion)).catch((e) =>
         console.error("[fotos] no se borró", productoId, id, e),
       );
     }),
@@ -502,18 +508,106 @@ export async function leerConfigEventos() {
   }
 }
 
+const limpiarTramos = (tramos) =>
+  (tramos || [])
+    .map((t) => ({ desde: Math.max(0, Math.floor(Number(t.desde) || 0)), precio: Math.round(Number(t.precio) || 0) }))
+    .filter((t) => t.precio > 0)
+    .sort((a, b) => a.desde - b.desde);
+
+/** Guarda las condiciones generales. Se mezcla con lo guardado: precios y
+    empaques del esquema anterior se conservan mientras la tienda los use. */
 export async function guardarConfigEventos(datos) {
+  const porcentaje = Math.round(Number(datos.porcentajeAnticipo));
   const limpio = {
-    precios: (datos.precios || [])
-      .map((t) => ({ desde: Number(t.desde) || 0, precio: Number(t.precio) || 0 }))
-      .filter((t) => t.precio > 0)
-      .sort((a, b) => a.desde - b.desde),
-    pedidoMinimo: Number(datos.pedidoMinimo) || 0,
-    diasAnticipacion: Number(datos.diasAnticipacion) || 0,
-    empaques: [...new Set((datos.empaques || []).map((e) => String(e).trim()).filter(Boolean))],
+    pedidoMinimo: Math.max(0, Math.floor(Number(datos.pedidoMinimo) || 0)),
+    diasAnticipacion: Math.max(0, Math.floor(Number(datos.diasAnticipacion) || 0)),
+    umbralAnticipo: Math.max(0, Math.floor(Number(datos.umbralAnticipo) || 0)),
+    porcentajeAnticipo: Number.isFinite(porcentaje) ? Math.min(100, Math.max(0, porcentaje)) : 50,
+    textoPedidoPequeno: String(datos.textoPedidoPequeno || "").trim(),
   };
-  await setDoc(doc(db, ...CONFIG_EVENTOS), { ...limpio, actualizado: serverTimestamp() });
+  await setDoc(doc(db, ...CONFIG_EVENTOS), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
   return leerConfigEventos();
+}
+
+/* ---------- Eventos: tipos y diseños ----------
+   Lectura pública (los muestra el recorrido de la tienda); solo el admin
+   escribe. Se ordenan por `orden`. */
+
+const porOrden = (a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0);
+
+export async function leerTiposEvento() {
+  try {
+    return conId(await getDocs(collection(db, "tiposEvento"))).sort(porOrden);
+  } catch (error) {
+    console.error("[eventos] no se pudieron leer los tipos", error);
+    return [];
+  }
+}
+
+export async function guardarTipoEvento(datos, id) {
+  const limpio = {
+    nombre: String(datos.nombre || "").trim(),
+    foto: datos.foto || "",
+    estado: datos.estado === "proximamente" ? "proximamente" : "activo",
+    orden: Number(datos.orden) || 0,
+    actualizado: hoyISO(),
+  };
+  if (id) {
+    await setDoc(doc(db, "tiposEvento", id), limpio, { merge: true });
+    return { id, ...limpio };
+  }
+  const ref = await addDoc(collection(db, "tiposEvento"), limpio);
+  return { id: ref.id, ...limpio };
+}
+
+export async function borrarTipoEvento(id) {
+  await deleteDoc(doc(db, "tiposEvento", id));
+}
+
+export async function leerDisenos() {
+  try {
+    return conId(await getDocs(collection(db, "disenos"))).sort(porOrden);
+  } catch (error) {
+    console.error("[eventos] no se pudieron leer los diseños", error);
+    return [];
+  }
+}
+
+/** Id reservado: las fotos de un diseño nuevo se suben antes que el diseño. */
+export const nuevoIdDiseno = () => doc(collection(db, "disenos")).id;
+
+const numeroOVacio = (v) => (String(v ?? "").trim() === "" ? null : Math.max(0, Math.floor(Number(v) || 0)));
+
+export async function guardarDiseno(datos, id) {
+  const limpio = {
+    nombre: String(datos.nombre || "").trim(),
+    descripcion: String(datos.descripcion || "").trim(),
+    tipos: [...new Set(datos.tipos || [])],
+    colores: (datos.colores || [])
+      .map((c) => ({ nombre: String(c.nombre || "").trim(), hex: /^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : "#ffffff" }))
+      .filter((c) => c.nombre),
+    aromas: [...new Set((datos.aromas || []).map((a) => String(a).trim()).filter(Boolean))],
+    precios: { solo: limpiarTramos(datos.precios?.solo), empacado: limpiarTramos(datos.precios?.empacado) },
+    // Vacío = usa el general.
+    minimo: numeroOVacio(datos.minimo),
+    anticipacion: numeroOVacio(datos.anticipacion),
+    activo: datos.activo !== false,
+    orden: Number(datos.orden) || 0,
+    fotos: datos.fotos || [],
+    miniatura: datos.miniatura || "",
+    actualizado: hoyISO(),
+  };
+  await setDoc(doc(db, "disenos", id), limpio, { merge: true });
+  return { id, ...limpio };
+}
+
+export async function actualizarDiseno(id, cambios) {
+  await updateDoc(doc(db, "disenos", id), cambios);
+  return cambios;
+}
+
+export async function borrarDiseno(id) {
+  await deleteDoc(doc(db, "disenos", id));
 }
 
 /* ---------- Carrito de la tienda ---------- */

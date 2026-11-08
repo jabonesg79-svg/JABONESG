@@ -11,7 +11,8 @@ import FotoProducto from "../ui/FotoProducto.jsx";
 
 const claveNueva = () => `n-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-export default function EditorFotos({ productoId, fotos, alCambiar }) {
+/** `coleccion` y `unidad` dejan usarlo también para los diseños de eventos. */
+export default function EditorFotos({ productoId, fotos, alCambiar, coleccion = "productos", unidad = "jabón" }) {
   const entradaRef = useRef(null);
   const [procesando, setProcesando] = useState(0);
   const [avisos, setAvisos] = useState([]);
@@ -24,7 +25,7 @@ export default function EditorFotos({ productoId, fotos, alCambiar }) {
     const problemas = [];
     if (archivos.length > cupo) {
       problemas.push(
-        `Caben ${MAX_FOTOS_PRODUCTO} fotos por jabón: se tomaron ${Math.max(cupo, 0)} de las ${archivos.length} elegidas.`,
+        `Caben ${MAX_FOTOS_PRODUCTO} fotos por ${unidad}: se tomaron ${Math.max(cupo, 0)} de las ${archivos.length} elegidas.`,
       );
     }
 
@@ -86,6 +87,7 @@ export default function EditorFotos({ productoId, fotos, alCambiar }) {
                 ) : (
                   <FotoProducto
                     productoId={productoId}
+                    coleccion={coleccion}
                     foto={foto.tipo === "url" ? foto.url : foto.id}
                     version="miniatura"
                     alt={`Foto ${i + 1}`}
@@ -164,12 +166,12 @@ export default function EditorFotos({ productoId, fotos, alCambiar }) {
           </Boton>
         </div>
       ) : (
-        <p className="campo__pista">Llegaste al máximo de {MAX_FOTOS_PRODUCTO} fotos por jabón.</p>
+        <p className="campo__pista">Llegaste al máximo de {MAX_FOTOS_PRODUCTO} fotos por {unidad}.</p>
       )}
 
       <p className="campo__pista">
         Desde el celular o el computador, JPG, PNG o WebP. Se comprimen solas antes de guardar: la
-        grande a 1600 px para la ficha y una miniatura de 600 px para el catálogo. La estrella
+        grande a 1600 px para la ficha y una miniatura de 600 px para las tarjetas. La estrella
         elige la principal.
       </p>
       {avisos.length > 0 && (
