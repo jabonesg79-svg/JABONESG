@@ -515,3 +515,67 @@ export async function guardarConfigEventos(datos) {
   await setDoc(doc(db, ...CONFIG_EVENTOS), { ...limpio, actualizado: serverTimestamp() });
   return leerConfigEventos();
 }
+
+/* ---------- Carrito de la tienda ---------- */
+
+/**
+ * Lee del servidor, uno por uno, los jabones del carrito: stock y precio al
+ * día justo antes de mostrar el total o enviar. Devuelve { id: producto | null }
+ * (null si el jabón ya no existe). Si falla la red, `null` en vez del mapa:
+ * quien llama sigue con lo que ya tenía.
+ */
+export async function leerProductosPorId(ids) {
+  try {
+    const snaps = await Promise.all(
+      ids.map((id) => getDoc(doc(db, "productos", id))),
+    );
+    return Object.fromEntries(
+      snaps.map((s, i) => [ids[i], s.exists() ? { id: s.id, ...s.data() } : null]),
+    );
+  } catch (error) {
+    console.error("[carrito] no se pudo revisar el stock", error);
+    return null;
+  }
+}
+
+/* ---------- Pedidos web ----------
+   Lo que la clienta envía desde el carrito. El público solo crea; el panel
+   los lee, los convierte en venta o los descarta. */
+
+export async function crearPedidoWeb({ lineas, total, datos }) {
+  const ref = await addDoc(collection(db, "pedidosWeb"), {
+    lineas: lineas.map((l) => ({
+      productoId: l.productoId,
+      nombre: l.nombre,
+      cantidad: Math.floor(Number(l.cantidad) || 0),
+      precio: Math.round(Number(l.precio) || 0),
+    })),
+    // Las reglas exigen un entero.
+    total: Math.round(Number(total) || 0),
+    nombre: datos.nombre,
+    telefono: datos.telefono,
+    ciudad: datos.ciudad,
+    entrega: datos.entrega,
+    notas: datos.notas,
+    estado: "nuevo",
+    creado: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function leerPedidosWeb() {
+  try {
+    const snap = await getDocs(collection(db, "pedidosWeb"));
+    return conId(snap)
+      .map((p) => ({ ...p, creado: p.creado?.toDate ? p.creado.toDate().toISOString() : p.creado || "" }))
+      .sort((a, b) => b.creado.localeCompare(a.creado));
+  } catch (error) {
+    console.error("[pedidos web] no se pudieron leer", error);
+    return [];
+  }
+}
+
+export async function actualizarPedidoWeb(id, cambios) {
+  await updateDoc(doc(db, "pedidosWeb", id), cambios);
+  return cambios;
+}

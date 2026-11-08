@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ETIQUETA_ESTADO, estadoTienda, etiquetaPresentacion, fotosDe } from "../lib/dominio.js";
 import { money } from "../lib/formato.js";
-import { Boton, LogoImagen, Modal } from "../ui/index.jsx";
+import { Boton, Icono, LogoImagen, Modal } from "../ui/index.jsx";
 import FotoProducto from "../ui/FotoProducto.jsx";
 import SelectorCantidad from "./SelectorCantidad.jsx";
 
@@ -9,7 +9,7 @@ import SelectorCantidad from "./SelectorCantidad.jsx";
  * Ficha de detalle de un jabón en la tienda. Solo muestra lo que está lleno:
  * un producto cargado a medias se ve corto, nunca con huecos.
  */
-export default function Ficha({ producto: p, enlacePedido, cantidad, alCambiarCantidad, alCerrar }) {
+export default function Ficha({ producto: p, enlacePedido, cantidad, alCambiarCantidad, alAgregar, alCerrar }) {
   const fotos = fotosDe(p);
   const [actual, setActual] = useState(0);
   const estado = estadoTienda(p);
@@ -113,12 +113,25 @@ export default function Ficha({ producto: p, enlacePedido, cantidad, alCambiarCa
             />
           )}
 
-          {enlacePedido && (
-            <a className="ficha__pedir" href={enlacePedido} target="_blank" rel="noreferrer noopener">
-              <Boton icono="whatsapp" bloque>
-                {estado === "agotado" ? "Preguntar cuándo vuelve" : "Pedir por WhatsApp"}
+          {estado === "agotado" ? (
+            enlacePedido && (
+              <a className="ficha__pedir" href={enlacePedido} target="_blank" rel="noreferrer noopener">
+                <Boton icono="whatsapp" bloque>
+                  Preguntar cuándo vuelve
+                </Boton>
+              </a>
+            )
+          ) : (
+            <div className="ficha__compra">
+              <Boton icono="tienda" bloque onClick={alAgregar}>
+                Agregar al carrito
               </Boton>
-            </a>
+              {enlacePedido && (
+                <a className="ficha__solo" href={enlacePedido} target="_blank" rel="noreferrer noopener">
+                  <Icono nombre="whatsapp" tam={15} /> o pídelo solo por WhatsApp
+                </a>
+              )}
+            </div>
           )}
         </div>
       </div>

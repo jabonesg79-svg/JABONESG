@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  actualizarPedidoWeb as actualizarPedidoWebEnFirestore,
   actualizarProducto,
   anularComprobante as anularComprobanteEnFirestore,
   borrarProducto,
@@ -13,6 +14,7 @@ import {
   leerConfigEventos,
   leerContacto,
   leerPedidosEventos,
+  leerPedidosWeb,
   leerTestimonios,
   leerFacturas,
   leerPortada,
@@ -40,14 +42,18 @@ const traerTodo = async (hayUsuario) => {
     leerConfigEventos(),
   ]);
   if (!hayUsuario) {
-    return { productos, portada, contacto, testimonios, configEventos, ventas: [], facturas: [], pedidosEventos: [] };
+    return {
+      productos, portada, contacto, testimonios, configEventos,
+      ventas: [], facturas: [], pedidosEventos: [], pedidosWeb: [],
+    };
   }
-  const [ventas, facturas, pedidosEventos] = await Promise.all([
+  const [ventas, facturas, pedidosEventos, pedidosWeb] = await Promise.all([
     leerVentas(),
     leerFacturas(),
     leerPedidosEventos(),
+    leerPedidosWeb(),
   ]);
-  return { productos, portada, contacto, testimonios, configEventos, ventas, facturas, pedidosEventos };
+  return { productos, portada, contacto, testimonios, configEventos, ventas, facturas, pedidosEventos, pedidosWeb };
 };
 
 export function ProveedorDatos({ children }) {
@@ -61,6 +67,7 @@ export function ProveedorDatos({ children }) {
   const [contacto, setContacto] = useState(CONTACTO_POR_DEFECTO);
   const [testimonios, setTestimonios] = useState([]);
   const [pedidosEventos, setPedidosEventos] = useState([]);
+  const [pedidosWeb, setPedidosWeb] = useState([]);
   const [configEventos, setConfigEventos] = useState(CONFIG_EVENTOS_POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -81,6 +88,7 @@ export function ProveedorDatos({ children }) {
         if (d.contacto) setContacto(d.contacto);
         setTestimonios(d.testimonios || []);
         setPedidosEventos(d.pedidosEventos || []);
+        setPedidosWeb(d.pedidosWeb || []);
         if (d.configEventos) setConfigEventos(d.configEventos);
         setError(null);
         setCargando(false);
@@ -158,6 +166,11 @@ export function ProveedorDatos({ children }) {
     return guardada;
   }, []);
 
+  const actualizarPedidoWeb = useCallback(async (id, cambios) => {
+    await actualizarPedidoWebEnFirestore(id, cambios);
+    setPedidosWeb((lista) => lista.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+  }, []);
+
   const anularComprobante = useCallback(
     async (factura, motivo) => {
       const lineas = ventas.filter((v) => v.ticket === factura.ticket && !v.anulada);
@@ -204,6 +217,7 @@ export function ProveedorDatos({ children }) {
       contacto,
       testimonios,
       pedidosEventos,
+      pedidosWeb,
       configEventos,
       cargando,
       error,
@@ -216,6 +230,7 @@ export function ProveedorDatos({ children }) {
       guardarPedidoEvento,
       eliminarPedidoEvento,
       guardarConfigEventos,
+      actualizarPedidoWeb,
       anularComprobante,
       venderCarrito,
       setFacturas,
@@ -228,6 +243,7 @@ export function ProveedorDatos({ children }) {
       contacto,
       testimonios,
       pedidosEventos,
+      pedidosWeb,
       configEventos,
       cargando,
       error,
@@ -240,6 +256,7 @@ export function ProveedorDatos({ children }) {
       guardarPedidoEvento,
       eliminarPedidoEvento,
       guardarConfigEventos,
+      actualizarPedidoWeb,
       anularComprobante,
       venderCarrito,
     ],

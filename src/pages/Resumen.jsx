@@ -96,7 +96,8 @@ function GraficaVentas({ dias }) {
 }
 
 export default function Resumen() {
-  const { productos, ventas, facturas, pedidosEventos = [] } = useDatos();
+  const { productos, ventas, facturas, pedidosEventos = [], pedidosWeb = [] } = useDatos();
+  const pedidosNuevos = pedidosWeb.filter((p) => (p.estado || "nuevo") === "nuevo").length;
 
   const hoy = diaISO();
   const mes = hoy.slice(0, 7);
@@ -187,6 +188,17 @@ export default function Resumen() {
           </Link>
         </div>
       </header>
+
+      {pedidosNuevos > 0 && (
+        <Link to="/panel/pedidos-web" className="aviso-pendiente">
+          <Icono nombre="caja" tam={18} />
+          <span>
+            Tienes <strong>{pedidosNuevos} {pedidosNuevos === 1 ? "pedido web nuevo" : "pedidos web nuevos"}</strong>{" "}
+            desde la tienda
+          </span>
+          <Icono nombre="flecha" tam={16} />
+        </Link>
+      )}
 
       <div className="metricas">
         <Tarjeta className="metrica metrica--acento">

@@ -11,6 +11,7 @@ const SECCIONES = [
   { a: "/panel/contacto", icono: "whatsapp", texto: "Contacto" },
   { a: "/panel/inventario", icono: "inventario", texto: "Inventario" },
   { a: "/panel/ventas", icono: "ventas", texto: "Vender" },
+  { a: "/panel/pedidos-web", icono: "caja", texto: "Pedidos web" },
   { a: "/panel/eventos", icono: "regalo", texto: "Eventos" },
   { a: "/panel/comprobantes", icono: "facturas", texto: "Comprobantes" },
 ];
@@ -21,7 +22,13 @@ const EN_MAS = SECCIONES.filter((s) => !EN_BARRA.includes(s.a));
 
 export default function Shell() {
   const { usuario, salir } = useSesion();
-  const { cargando, error, recargar } = useDatos();
+  const { cargando, error, recargar, pedidosWeb } = useDatos();
+  // Contador de pendientes por sección (hoy solo pedidos web nuevos).
+  const pendientes = {
+    "/panel/pedidos-web": pedidosWeb.filter((p) => (p.estado || "nuevo") === "nuevo").length,
+  };
+  const pendientesEnMas = EN_MAS.reduce((s, x) => s + (pendientes[x.a] || 0), 0);
+  const contador = (n) => (n > 0 ? <span className="menu__contador">{n > 99 ? "99+" : n}</span> : null);
   const { pathname } = useLocation();
   const [masAbierto, setMasAbierto] = useState(false);
   const enMas = EN_MAS.some((s) => pathname.startsWith(s.a));
@@ -44,6 +51,7 @@ export default function Shell() {
             >
               <Icono nombre={s.icono} tam={18} />
               {s.texto}
+              {contador(pendientes[s.a])}
             </NavLink>
           ))}
         </nav>
@@ -92,6 +100,7 @@ export default function Shell() {
               >
                 <Icono nombre={s.icono} tam={20} />
                 {s.texto}
+                {contador(pendientes[s.a])}
               </NavLink>
             ))}
             <NavLink to="/" className="hoja-mas__enlace">
@@ -125,7 +134,10 @@ export default function Shell() {
           aria-expanded={masAbierto}
           onClick={() => setMasAbierto((v) => !v)}
         >
-          <Icono nombre={masAbierto ? "cerrar" : "menu"} tam={20} />
+          <span className="barra-movil__icono">
+            <Icono nombre={masAbierto ? "cerrar" : "menu"} tam={20} />
+            {!masAbierto && pendientesEnMas > 0 && <span className="barra-movil__punto" aria-label={`${pendientesEnMas} pendientes`} />}
+          </span>
           Más
         </button>
       </nav>

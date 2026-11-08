@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
 import Ficha from "./Ficha.jsx";
+import Carrito from "./Carrito.jsx";
+import { useCarrito } from "../estado/useCarrito.js";
 import SelectorCantidad from "./SelectorCantidad.jsx";
 import { ComoComprar, PorQue, Testimonios } from "./SeccionesInicio.jsx";
 import { EJEMPLOS } from "../lib/ejemplos.js";
@@ -73,6 +75,40 @@ export default function Tienda() {
   const cambiarCantidad = (p) => (n) => setCantidades((c) => ({ ...c, [p.id]: n }));
   const enlacePedido = (p) =>
     enlaceWhatsApp(contacto.whatsapp, mensajePedido(contacto.mensajes, p, cantidadDe(p)));
+
+  const carrito = useCarrito();
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [aviso, setAviso] = useState(null);
+  const temporizador = useRef(null);
+  const enCarrito = carrito.lineas.reduce((s, l) => s + l.cantidad, 0);
+  const abrirCarrito = useCallback(() => {
+    setAviso(null);
+    setCarritoAbierto(true);
+  }, []);
+  const cerrarCarrito = useCallback(() => setCarritoAbierto(false), []);
+
+  const mostrarAviso = (texto, conEnlace) => {
+    clearTimeout(temporizador.current);
+    setAviso({ texto, conEnlace, clave: Date.now() });
+    temporizador.current = setTimeout(() => setAviso(null), 3800);
+  };
+  useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  /** Suma al carrito la cantidad del selector, sin pasar del stock. */
+  const agregarAlCarrito = (p) => {
+    const pedida = cantidadDe(p);
+    const yaLleva = carrito.lineas.find((l) => l.id === p.id)?.cantidad || 0;
+    const entraron = carrito.agregar(p, pedida);
+    setCantidades((c) => ({ ...c, [p.id]: 1 }));
+    if (entraron === pedida) return mostrarAviso("Agregado ✓", true);
+    if (entraron > 0) {
+      return mostrarAviso(`Solo quedan ${p.stock}: agregamos ${entraron} y ya tienes ${yaLleva + entraron}`, true);
+    }
+    mostrarAviso(
+      yaLleva > 0 ? `Ya tienes en el carrito las ${yaLleva} que quedan` : "Tu carrito ya tiene 20 jabones distintos",
+      yaLleva > 0,
+    );
+  };
 
   const whatsapp = enlaceWhatsApp(contacto.whatsapp, armarMensaje(contacto.mensajes, "general"));
   const whatsappEvento = enlaceWhatsApp(
@@ -185,6 +221,14 @@ export default function Tienda() {
                 <span>WhatsApp</span>
               </a>
             )}
+            <button
+              className="barra__bolsa"
+              onClick={abrirCarrito}
+              aria-label={enCarrito ? `Ver el carrito, ${enCarrito} ${enCarrito === 1 ? "jabón" : "jabones"}` : "Ver el carrito"}
+            >
+              <Icono nombre="tienda" tam={22} />
+              {enCarrito > 0 && <span className="barra__contador">{enCarrito > 99 ? "99+" : enCarrito}</span>}
+            </button>
             <button
               className="barra__menu"
               aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
@@ -304,22 +348,25 @@ export default function Tienda() {
                       />
                     )}
 
-                    {pedido && (
-                      <a
-                        className="pieza__pedir"
-                        href={pedido}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        <Icono nombre="whatsapp" tam={16} />
-                        {estado === "agotado" ? (
-                          "Preguntar"
-                        ) : (
-                          <span>
-                            Pedir<span className="pieza__pedir-extra"> por WhatsApp</span>
-                          </span>
-                        )}
-                      </a>
+                    {estado === "agotado" ? (
+                      pedido && (
+                        <a
+                          className="pieza__pedir"
+                          href={pedido}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          <Icono nombre="whatsapp" tam={16} />
+                          Preguntar
+                        </a>
+                      )
+                    ) : (
+                      <button className="pieza__pedir pieza__agregar" onClick={() => agregarAlCarrito(p)}>
+                        <Icono nombre="tienda" tam={16} />
+                        <span>
+                          Agregar<span className="pieza__pedir-extra"> al carrito</span>
+                        </span>
+                      </button>
                     )}
                   </article>
                 );
@@ -443,11 +490,35 @@ export default function Tienda() {
           enlacePedido={enlacePedido(detalle)}
           cantidad={cantidadDe(detalle)}
           alCambiarCantidad={cambiarCantidad(detalle)}
+          alAgregar={() => agregarAlCarrito(detalle)}
           alCerrar={() => setDetalle(null)}
         />
       )}
 
-      {whatsapp && (
+      {carritoAbierto && (
+        <Carrito
+          carrito={carrito}
+          catalogo={publicados}
+          contacto={contacto}
+          alCerrar={cerrarCarrito}
+          alVerCatalogo={() => {
+            setCarritoAbierto(false);
+            setDetalle(null);
+            document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
+      )}
+
+      {aviso && (
+        <div key={aviso.clave} className="aviso-carrito" role="status">
+          <span>{aviso.texto}</span>
+          {aviso.conEnlace && (
+            <button onClick={() => { setDetalle(null); abrirCarrito(); }}>Ver carrito</button>
+          )}
+        </div>
+      )}
+
+      {whatsapp && !carritoAbierto && (
         <a
           className={`whatsapp-flotante no-imprimir ${contactoALaVista ? "whatsapp-flotante--oculto" : ""}`}
           aria-hidden={contactoALaVista || undefined}

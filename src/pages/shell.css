@@ -157,3 +157,30 @@
   .barra-movil { display: flex; }
   .cabecera-pagina h1 { font-size: 25px; }
 }
+
+/* Contador de pendientes en el menú (pedidos web nuevos) */
+.menu__contador {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: var(--radio-pildora);
+  background: var(--caramelo);
+  color: var(--marfil);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.menu__enlace.activo .menu__contador { background: var(--marfil); color: var(--caramelo-hondo); }
+.hoja-mas__enlace .menu__contador { margin-left: auto; }
+.barra-movil__icono { position: relative; display: inline-grid; }
+.barra-movil__punto {
+  position: absolute;
+  top: -2px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--caramelo);
+  box-shadow: 0 0 0 2px var(--cacao);
+}

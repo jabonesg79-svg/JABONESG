@@ -1,3 +1,5 @@
+import { money } from "./formato.js";
+
 /* Vocabulario del negocio: jabones artesanales.
    Estas listas alimentan formularios y filtros; ampliarlas aquí las propaga a toda la app. */
 
@@ -193,6 +195,8 @@ export const MENSAJES_POR_DEFECTO = {
   evento:
     "¡Hola, JabonesG! 🌿 Quiero cotizar recordatorios para mi *{evento}*.\nFecha del evento: \nCantidad aproximada: \nCiudad: ",
   general: "¡Hola, JabonesG! 🌿 Quiero información sobre sus jabones.",
+  carrito:
+    "¡Hola, JabonesG! 🌿 Quiero hacer este pedido:\n{lista}\n*Total: {total}*\nNombre: {nombre}\nCiudad: {ciudad} · {entrega}\n{notas}\n¿Me confirmas disponibilidad y envío?",
 };
 
 export const MENSAJES_WHATSAPP = [
@@ -200,6 +204,11 @@ export const MENSAJES_WHATSAPP = [
   { id: "agotado", titulo: "Jabón agotado", variables: ["jabon"] },
   { id: "evento", titulo: "Cotizar evento", variables: ["evento"] },
   { id: "general", titulo: "Consulta general (botón flotante)", variables: [] },
+  {
+    id: "carrito",
+    titulo: "Pedido del carrito",
+    variables: ["lista", "total", "nombre", "ciudad", "entrega", "notas"],
+  },
 ];
 
 /** Datos de ejemplo para la vista previa del panel. */
@@ -208,17 +217,62 @@ export const EJEMPLO_MENSAJE = {
   cantidad: 2,
   total: 30000,
   evento: "Baby shower",
+  lista: listaPedido([{ nombre: "Jabón de avena y miel", cantidad: 2, precio: 15000 }]),
+  nombre: "Laura",
+  ciudad: "Valledupar",
+  entrega: "Envío a domicilio",
+  notas: "",
 };
 
 /** Arma el mensaje: plantilla guardada (o la de por defecto si está vacía) con
-    las {variables} reemplazadas. Una variable desconocida queda tal cual. */
+    las {variables} reemplazadas. Una variable desconocida queda tal cual.
+
+    Un dato vacío no deja renglones a medias: en cada línea se quita el trozo
+    (separado por " · ") que lo lleva, y si no queda nada se quita la línea.
+    Así "Ciudad: {ciudad} · {entrega}" sin ciudad queda solo "Recoger en tienda". */
 export const armarMensaje = (mensajes, id, valores = {}) => {
   const guardada = mensajes?.[id];
   const plantilla = guardada && guardada.trim() ? guardada : MENSAJES_POR_DEFECTO[id] || "";
-  return plantilla.replace(/\{(\w+)\}/g, (todo, clave) =>
-    clave in valores ? String(valores[clave]) : todo,
-  );
+  const vacia = (clave) => clave in valores && String(valores[clave] ?? "").trim() === "";
+  const llenar = (texto) =>
+    texto.replace(/\{(\w+)\}/g, (todo, clave) => (clave in valores ? String(valores[clave]) : todo));
+  const lineas = [];
+  for (const linea of plantilla.split("\n")) {
+    const claves = [...linea.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+    if (!claves.some(vacia)) {
+      lineas.push(llenar(linea));
+      continue;
+    }
+    const trozos = linea
+      .split(" · ")
+      .filter((t) => ![...t.matchAll(/\{(\w+)\}/g)].some((m) => vacia(m[1])));
+    if (trozos.length) lineas.push(llenar(trozos.join(" · ")));
+  }
+  return lineas.join("\n");
 };
+
+/** Una línea por jabón para {lista}: "• 2 × *Jabón de carbón* — $ 30.000". */
+export function listaPedido(lineas) {
+  return lineas
+    .map((l) => `• ${l.cantidad} × *${l.nombre}* — ${money(l.cantidad * l.precio)}`)
+    .join("\n");
+}
+
+/* ---------- Carrito y pedidos web ---------- */
+
+export const ENTREGAS = ["Envío a domicilio", "Recoger en tienda"];
+
+/** Largos máximos de lo que la clienta escribe; las reglas de Firestore
+    exigen los mismos. */
+export const LARGOS_PEDIDO = { nombre: 80, telefono: 30, ciudad: 60, entrega: 40, notas: 500 };
+export const MAX_LINEAS_PEDIDO = 20;
+
+export const DATOS_PEDIDO_VACIOS = { nombre: "", telefono: "", ciudad: "", entrega: "", notas: "" };
+
+export const ESTADOS_PEDIDO_WEB = { nuevo: "Nuevo", vendido: "Vendido", descartado: "Descartado" };
+
+export const totalLineas = (lineas) =>
+  lineas.reduce((s, l) => s + (Number(l.cantidad) || 0) * (Number(l.precio) || 0), 0);
 
 /** Testimonios de clientes. Arrancan vacíos: la sección no se muestra hasta
     que se cargue uno real desde el panel. */

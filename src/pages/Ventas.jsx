@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDatos } from "../estado/contextos.js";
-import { siguienteNumeroFactura } from "../lib/datos.js";
+import { leerProductosPorId, siguienteNumeroFactura } from "../lib/datos.js";
 import { FORMAS_PAGO, miniaturaDe, montoDescuento } from "../lib/dominio.js";
-import { money, num } from "../lib/formato.js";
+import { hoyISO, money, num } from "../lib/formato.js";
 import {
   Boton,
   Buscador,
@@ -17,8 +18,12 @@ import { useAviso } from "../ui/contextoAvisos.js";
 import "./panel.css";
 
 export default function Ventas() {
-  const { productos, facturas, venderCarrito } = useDatos();
+  const { productos, facturas, venderCarrito, pedidosWeb, actualizarPedidoWeb } = useDatos();
   const avisar = useAviso();
+  const { state } = useLocation();
+  const navegar = useNavigate();
+  // Pedido web que se está convirtiendo en venta (viene de Pedidos web).
+  const [origen, setOrigen] = useState(null);
 
   const [busqueda, setBusqueda] = useState("");
   const [carrito, setCarrito] = useState([]);
@@ -41,6 +46,65 @@ export default function Ventas() {
             .some((c) => String(c).toLowerCase().includes(q)),
     );
   }, [productos, busqueda]);
+
+  // "Convertir en venta": carga las líneas del pedido con el stock y el
+  // precio que hay hoy en Firestore, nunca con lo que mandó el navegador.
+  // Se toma una sola vez al entrar: limpiar la dirección no debe cortar la carga.
+  const [pedidoWebId] = useState(() => state?.pedidoWebId);
+  useEffect(() => {
+    if (!pedidoWebId) return undefined;
+    const pedido = pedidosWeb.find((p) => p.id === pedidoWebId);
+    // Se limpia la dirección para que recargar no vuelva a cargar el pedido.
+    navegar(".", { replace: true, state: null });
+    if (!pedido) return undefined;
+    let vigente = true;
+    const lineas = pedido.lineas || [];
+    leerProductosPorId([...new Set(lineas.map((l) => l.productoId))]).then((leidos) => {
+      if (!vigente) return;
+      const mapa = leidos || Object.fromEntries(productos.map((p) => [p.id, p]));
+      const avisos = [];
+      const cargado = [];
+      for (const l of lineas) {
+        const p = mapa[l.productoId];
+        const stock = Number(p?.stock) || 0;
+        if (!p) {
+          avisos.push(`${l.nombre}: ya no está en el inventario, no se cargó.`);
+          continue;
+        }
+        if (stock <= 0) {
+          avisos.push(`${p.nombre}: sin stock, no se cargó.`);
+          continue;
+        }
+        const cantidad = Math.min(Number(l.cantidad) || 0, stock);
+        if (cantidad < l.cantidad) avisos.push(`${p.nombre}: pidió ${l.cantidad} y hay ${stock}.`);
+        const precio = Number(p.precioVenta) || 0;
+        if (precio !== Number(l.precio)) {
+          avisos.push(`${p.nombre}: lo vio a ${money(l.precio)}, hoy cuesta ${money(precio)}.`);
+        }
+        cargado.push({
+          id: p.id,
+          codigo: p.codigo,
+          nombre: p.nombre,
+          linea: p.linea,
+          aroma: p.aroma,
+          stock,
+          costoProduccion: Number(p.costoProduccion) || 0,
+          precioVenta: precio,
+          precioFinal: precio,
+          cantidad,
+        });
+      }
+      setCarrito(cargado);
+      setClienteNombre(pedido.nombre || "");
+      setClienteTelefono(pedido.telefono || "");
+      setOrigen({ id: pedido.id, nombre: pedido.nombre, avisos });
+    });
+    return () => {
+      vigente = false;
+    };
+    // Solo al llegar desde "Convertir en venta".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoWebId]);
 
   const enCarrito = (id) => carrito.find((i) => i.id === id)?.cantidad || 0;
 
@@ -112,6 +176,14 @@ export default function Ventas() {
         descuento: descuento ? { tipo: tipoDescuento, valor: Number(valorDescuento) || 0, monto: descuento } : null,
       });
       avisar(`Venta registrada · comprobante ${factura.numeroFactura}`, "exito");
+      if (origen) {
+        await actualizarPedidoWeb(origen.id, {
+          estado: "vendido",
+          numeroFactura: factura.numeroFactura,
+          vendidoEl: hoyISO(),
+        }).catch((err) => avisar(`La venta quedó, pero no se marcó el pedido web: ${err.message}`, "peligro"));
+        setOrigen(null);
+      }
       setCarrito([]);
       setClienteNombre("");
       setClienteTelefono("");
@@ -135,12 +207,35 @@ export default function Ventas() {
         </div>
         {carrito.length > 0 && (
           <div className="cabecera-pagina__acciones">
-            <Boton variante="fantasma" onClick={() => setCarrito([])}>
+            <Boton
+              variante="fantasma"
+              onClick={() => {
+                setCarrito([]);
+                setOrigen(null);
+              }}
+            >
               Vaciar carrito
             </Boton>
           </div>
         )}
       </header>
+
+      {origen && (
+        <div className="venta-origen">
+          <span>
+            <Icono nombre="caja" tam={14} /> Venta del pedido web
+            {origen.nombre ? ` de ${origen.nombre}` : ""}, con stock y precios de hoy. Al cobrar, el
+            pedido queda como vendido.
+          </span>
+          {origen.avisos.length > 0 && (
+            <ul>
+              {origen.avisos.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="pos">
         <div>

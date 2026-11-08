@@ -678,3 +678,64 @@
   color: var(--taupe);
   margin-bottom: var(--hueco);
 }
+
+/* --- Pedidos web --- */
+.aviso-pendiente {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -6px 0 22px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--caramelo) 40%, var(--marfil));
+  border-radius: var(--radio-imagen);
+  background: var(--caramelo-velo);
+  color: var(--caramelo-hondo);
+  font-size: 14px;
+  text-decoration: none;
+}
+.aviso-pendiente span { flex: 1; }
+.aviso-pendiente:hover { border-color: var(--caramelo); }
+.pedidos-web { list-style: none; margin: 0; padding: 0; }
+.pedidos-web li + li { border-top: 1px solid var(--linea); }
+.pedido-web {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.pedido-web:hover { background: var(--crema); }
+.pedido-web__quien,
+.pedido-web__cifras { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pedido-web__cifras { align-items: flex-end; }
+.pedido-web__detalle { display: flex; flex-direction: column; gap: 16px; }
+.pedido-web__notas { padding: 10px 14px; border-left: 2px solid var(--beige); color: var(--taupe); font-style: italic; }
+.venta-origen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -8px 0 18px;
+  padding: 12px 16px;
+  border-radius: var(--radio-imagen);
+  background: var(--salvia-velo);
+  color: var(--salvia-honda);
+  font-size: 13.5px;
+}
+.venta-origen ul { margin: 4px 0 0; padding-left: 18px; color: var(--caramelo-hondo); }
+@media (max-width: 620px) {
+  .pedido-web { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 14px; gap: 8px 12px; }
+  .pedido-web .insignia { grid-column: 1 / -1; justify-self: start; }
+}
+.pedido-web__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; width: 100%; }
+@media (max-width: 620px) {
+  .pedido-web__acciones { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .pedido-web__acciones > a,
+  .pedido-web__acciones .boton { width: 100%; }
+}

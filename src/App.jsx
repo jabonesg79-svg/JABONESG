@@ -9,6 +9,7 @@ import Portada from "./pages/Portada.jsx";
 import Inventario from "./pages/Inventario.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import Comprobantes from "./pages/Comprobantes.jsx";
+import PedidosWeb from "./pages/PedidosWeb.jsx";
 import Contacto from "./pages/Contacto.jsx";
 import Eventos from "./pages/Eventos.jsx";
 
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="inventario" element={<Inventario />} />
         <Route path="ventas" element={<Ventas />} />
         <Route path="comprobantes" element={<Comprobantes />} />
+        <Route path="pedidos-web" element={<PedidosWeb />} />
         {/* Dirección anterior: los enlaces guardados siguen funcionando. */}
         <Route path="facturas" element={<Navigate to="/panel/comprobantes" replace />} />
         <Route path="contacto" element={<Contacto />} />

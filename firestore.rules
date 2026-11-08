@@ -64,6 +64,38 @@ service cloud.firestore {
       allow read, update, delete: if esAdmin();
     }
 
+    // Pedidos enviados desde el carrito de la tienda. El público solo crea, con
+    // campos y largos acotados; el estado arranca siempre en "nuevo" y la fecha
+    // la pone el servidor. Las reglas no revisan cada línea por dentro: el
+    // panel recalcula stock y precios desde los productos al convertir el
+    // pedido en venta, y nunca usa el total que manda el navegador.
+    match /pedidosWeb/{pedidoId} {
+      allow create: if request.resource.data.keys().hasOnly(
+                         ["lineas", "total", "nombre", "telefono", "ciudad", "entrega", "notas",
+                          "estado", "creado"])
+                    && request.resource.data.keys().hasAll(
+                         ["lineas", "total", "nombre", "telefono", "ciudad", "entrega", "notas",
+                          "estado", "creado"])
+                    && request.resource.data.lineas is list
+                    && request.resource.data.lineas.size() > 0
+                    && request.resource.data.lineas.size() <= 20
+                    && request.resource.data.total is int
+                    && request.resource.data.total >= 0
+                    && request.resource.data.total <= 100000000
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() <= 80
+                    && request.resource.data.telefono is string
+                    && request.resource.data.telefono.size() <= 30
+                    && request.resource.data.ciudad is string
+                    && request.resource.data.ciudad.size() <= 60
+                    && request.resource.data.entrega in ["", "Envío a domicilio", "Recoger en tienda"]
+                    && request.resource.data.notas is string
+                    && request.resource.data.notas.size() <= 500
+                    && request.resource.data.estado == "nuevo"
+                    && request.resource.data.creado == request.time;
+      allow read, update, delete: if esAdmin();
+    }
+
     // Pedidos de recordatorios para eventos, con datos del cliente y abonos:
     // solo el admin.
     match /eventos/{pedidoId} {
