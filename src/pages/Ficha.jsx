@@ -3,12 +3,13 @@ import { ETIQUETA_ESTADO, estadoTienda, etiquetaPresentacion, fotosDe } from "..
 import { money } from "../lib/formato.js";
 import { Boton, LogoImagen, Modal } from "../ui/index.jsx";
 import FotoProducto from "../ui/FotoProducto.jsx";
+import SelectorCantidad from "./SelectorCantidad.jsx";
 
 /**
  * Ficha de detalle de un jabón en la tienda. Solo muestra lo que está lleno:
  * un producto cargado a medias se ve corto, nunca con huecos.
  */
-export default function Ficha({ producto: p, enlacePedido, alCerrar }) {
+export default function Ficha({ producto: p, enlacePedido, cantidad, alCambiarCantidad, alCerrar }) {
   const fotos = fotosDe(p);
   const [actual, setActual] = useState(0);
   const estado = estadoTienda(p);
@@ -100,6 +101,16 @@ export default function Ficha({ producto: p, enlacePedido, alCerrar }) {
               <h3 className="etiqueta">Modo de uso</h3>
               <p>{p.modoUso}</p>
             </section>
+          )}
+
+          {estado !== "agotado" && (
+            <SelectorCantidad
+              producto={p}
+              cantidad={cantidad}
+              alCambiar={alCambiarCantidad}
+              conTotal
+              grande
+            />
           )}
 
           {enlacePedido && (

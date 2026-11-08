@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
 import Hero from "./Hero.jsx";
 import Ficha from "./Ficha.jsx";
+import SelectorCantidad from "./SelectorCantidad.jsx";
 import { ComoComprar, PorQue, Testimonios } from "./SeccionesInicio.jsx";
 import { EJEMPLOS } from "../lib/ejemplos.js";
 import {
+  armarMensaje,
   BENEFICIOS,
   ETIQUETA_ESTADO,
   estadoTienda,
+  limitarCantidad,
   miniaturaDe,
   ordenarParaTienda,
   precioDesde,
@@ -46,14 +49,16 @@ const EVENTOS = [
   "Detalles empresariales",
 ];
 
-const mensajePedido = (p) =>
+/** Mensaje para pedir (o preguntar por) un jabón, con la cantidad elegida.
+    `{jabon}` es solo el nombre: la plantilla pone lo demás. */
+const mensajePedido = (mensajes, p, cantidad) =>
   estadoTienda(p) === "agotado"
-    ? `Hola JabonesG, vi el jabón "${p.nombre}" agotado en la tienda. ¿Cuándo vuelve a estar disponible?`
-    : `Hola JabonesG, quiero pedir el jabón "${p.nombre}" (${money(p.precioVenta)}). ¿Me ayudas con el pedido?`;
-
-const MENSAJE_GENERAL = "Hola JabonesG, quiero información sobre sus jabones.";
-const MENSAJE_EVENTO =
-  "Hola JabonesG, quiero cotizar recordatorios de jabón para un evento. Tipo de evento: ___ · Fecha: ___ · Cantidad aproximada: ___";
+    ? armarMensaje(mensajes, "agotado", { jabon: p.nombre })
+    : armarMensaje(mensajes, "pedido", {
+        jabon: p.nombre,
+        cantidad,
+        total: money(cantidad * (Number(p.precioVenta) || 0)),
+      });
 
 export default function Tienda() {
   const { productos, portada, contacto, testimonios, configEventos, cargando } = useDatos();
@@ -62,9 +67,18 @@ export default function Tienda() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [detalle, setDetalle] = useState(null);
   const [contactoALaVista, setContactoALaVista] = useState(false);
+  // Cantidad elegida por jabón; la tarjeta y la ficha comparten la misma.
+  const [cantidades, setCantidades] = useState({});
+  const cantidadDe = (p) => limitarCantidad(cantidades[p.id] ?? 1, p);
+  const cambiarCantidad = (p) => (n) => setCantidades((c) => ({ ...c, [p.id]: n }));
+  const enlacePedido = (p) =>
+    enlaceWhatsApp(contacto.whatsapp, mensajePedido(contacto.mensajes, p, cantidadDe(p)));
 
-  const whatsapp = enlaceWhatsApp(contacto.whatsapp, MENSAJE_GENERAL);
-  const whatsappEvento = enlaceWhatsApp(contacto.whatsapp, MENSAJE_EVENTO);
+  const whatsapp = enlaceWhatsApp(contacto.whatsapp, armarMensaje(contacto.mensajes, "general"));
+  const whatsappEvento = enlaceWhatsApp(
+    contacto.whatsapp,
+    armarMensaje(contacto.mensajes, "evento", { evento: "evento" }),
+  );
   const instagram = enlaceInstagram(contacto.instagram);
 
   // Condiciones de eventos configuradas en el panel; las vacías no se muestran.
@@ -243,7 +257,7 @@ export default function Tienda() {
                 // La tarjeta usa la miniatura que ya trae el producto: el
                 // catálogo no lee ningún documento de fotos.
                 const foto = miniaturaDe(p);
-                const pedido = enlaceWhatsApp(contacto.whatsapp, mensajePedido(p));
+                const pedido = enlacePedido(p);
                 return (
                   <article
                     key={p.id}
@@ -281,6 +295,14 @@ export default function Tienda() {
                       )}
                       <p className="pieza__precio">{money(p.precioVenta)}</p>
                     </button>
+
+                    {estado !== "agotado" && (
+                      <SelectorCantidad
+                        producto={p}
+                        cantidad={cantidadDe(p)}
+                        alCambiar={cambiarCantidad(p)}
+                      />
+                    )}
 
                     {pedido && (
                       <a
@@ -418,7 +440,9 @@ export default function Tienda() {
       {detalle && (
         <Ficha
           producto={detalle}
-          enlacePedido={enlaceWhatsApp(contacto.whatsapp, mensajePedido(detalle))}
+          enlacePedido={enlacePedido(detalle)}
+          cantidad={cantidadDe(detalle)}
+          alCambiarCantidad={cambiarCantidad(detalle)}
           alCerrar={() => setDetalle(null)}
         />
       )}

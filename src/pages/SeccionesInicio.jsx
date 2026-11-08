@@ -25,7 +25,7 @@ const RAZONES = [
 
 const PASOS = [
   { titulo: "Elige", texto: "Mira el catálogo y abre la ficha del jabón que te guste." },
-  { titulo: "Escríbenos", texto: "Toca «Pedir por WhatsApp»: el mensaje ya va con el jabón y el precio." },
+  { titulo: "Escríbenos", texto: "Toca «Pedir por WhatsApp»: el mensaje ya va con el jabón, la cantidad y el total." },
   { titulo: "Paga", texto: "Transferencia bancaria, Nequi, Daviplata o efectivo." },
   { titulo: "Recíbelo", texto: "Enviamos a todo el país y coordinamos entregas locales." },
 ];

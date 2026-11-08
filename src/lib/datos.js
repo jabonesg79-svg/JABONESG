@@ -19,6 +19,7 @@ import {
   CONFIG_EVENTOS_POR_DEFECTO,
   CONTACTO_POR_DEFECTO,
   MAX_TESTIMONIOS,
+  MENSAJES_POR_DEFECTO,
   PORTADA_POR_DEFECTO,
 } from "./dominio.js";
 import { PESO_MAXIMO_GUARDADO } from "./imagenes.js";
@@ -384,8 +385,8 @@ export async function leerContacto() {
   try {
     const snap = await getDoc(doc(db, ...CONTACTO));
     return snap.exists()
-      ? { ...CONTACTO_POR_DEFECTO, ...snap.data() }
-      : { ...CONTACTO_POR_DEFECTO };
+      ? { ...CONTACTO_POR_DEFECTO, mensajes: {}, ...snap.data() }
+      : { ...CONTACTO_POR_DEFECTO, mensajes: {} };
   } catch (error) {
     console.error("[contacto] no se pudo leer la configuración", error);
     return { ...CONTACTO_POR_DEFECTO };
@@ -395,6 +396,14 @@ export async function leerContacto() {
 export async function guardarContacto(datos) {
   const limpio = Object.fromEntries(
     Object.keys(CONTACTO_POR_DEFECTO).map((clave) => [clave, String(datos[clave] ?? "").trim()]),
+  );
+  // Las plantillas se guardan tal cual (los espacios y saltos son parte del
+  // mensaje); solo una hecha de puros espacios queda vacía.
+  limpio.mensajes = Object.fromEntries(
+    Object.keys(MENSAJES_POR_DEFECTO).map((clave) => {
+      const texto = String(datos.mensajes?.[clave] ?? "");
+      return [clave, texto.trim() ? texto : ""];
+    }),
   );
   await setDoc(doc(db, ...CONTACTO), { ...limpio, actualizado: serverTimestamp() }, { merge: true });
   return leerContacto();

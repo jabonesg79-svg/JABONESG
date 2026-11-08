@@ -107,6 +107,12 @@ export const estadoTienda = (producto) => {
   return producto?.nuevo ? "nuevo" : "disponible";
 };
 
+/** Unidades que se pueden pedir de un jabón: de 1 al stock disponible. */
+export const topeCantidad = (p) => Math.max(0, Math.floor(Number(p?.stock) || 0));
+
+export const limitarCantidad = (cantidad, p) =>
+  Math.min(Math.max(1, Math.floor(Number(cantidad) || 1)), Math.max(1, topeCantidad(p)));
+
 export const ETIQUETA_ESTADO = { disponible: "Disponible", nuevo: "Nuevo", agotado: "Agotado" };
 
 const PESO_ESTADO = { nuevo: 0, disponible: 1, agotado: 2 };
@@ -173,6 +179,45 @@ export const PORTADA_POR_DEFECTO = {
 export const CONTACTO_POR_DEFECTO = {
   whatsapp: "573113509187",
   instagram: "",
+};
+
+/* ---------- Mensajes de WhatsApp ---------- */
+
+/** Plantillas de los mensajes que la tienda deja escritos en WhatsApp. Se
+    editan en Panel → Contacto; una plantilla vacía usa la de aquí. */
+export const MENSAJES_POR_DEFECTO = {
+  pedido:
+    "¡Hola, JabonesG! 🌿 Me interesa el *{jabon}*.\nCantidad: {cantidad} ({total})\n¿Me cuentas cómo hago el pedido?\nCiudad: ",
+  agotado:
+    "Hola 🌿 Vi que el *{jabon}* está agotado. ¿Me avisas cuando vuelva a estar disponible?",
+  evento:
+    "¡Hola, JabonesG! 🌿 Quiero cotizar recordatorios para mi *{evento}*.\nFecha del evento: \nCantidad aproximada: \nCiudad: ",
+  general: "¡Hola, JabonesG! 🌿 Quiero información sobre sus jabones.",
+};
+
+export const MENSAJES_WHATSAPP = [
+  { id: "pedido", titulo: "Pedir un jabón", variables: ["jabon", "cantidad", "total"] },
+  { id: "agotado", titulo: "Jabón agotado", variables: ["jabon"] },
+  { id: "evento", titulo: "Cotizar evento", variables: ["evento"] },
+  { id: "general", titulo: "Consulta general (botón flotante)", variables: [] },
+];
+
+/** Datos de ejemplo para la vista previa del panel. */
+export const EJEMPLO_MENSAJE = {
+  jabon: "Jabón de avena y miel",
+  cantidad: 2,
+  total: 30000,
+  evento: "Baby shower",
+};
+
+/** Arma el mensaje: plantilla guardada (o la de por defecto si está vacía) con
+    las {variables} reemplazadas. Una variable desconocida queda tal cual. */
+export const armarMensaje = (mensajes, id, valores = {}) => {
+  const guardada = mensajes?.[id];
+  const plantilla = guardada && guardada.trim() ? guardada : MENSAJES_POR_DEFECTO[id] || "";
+  return plantilla.replace(/\{(\w+)\}/g, (todo, clave) =>
+    clave in valores ? String(valores[clave]) : todo,
+  );
 };
 
 /** Testimonios de clientes. Arrancan vacíos: la sección no se muestra hasta

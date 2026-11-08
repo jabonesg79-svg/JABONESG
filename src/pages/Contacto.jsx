@@ -1,7 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDatos } from "../estado/contextos.js";
-import { CONTACTO_POR_DEFECTO, MAX_TESTIMONIOS, TESTIMONIO_VACIO } from "../lib/dominio.js";
-import { enlaceInstagram, enlaceWhatsApp, telefonoLegible } from "../lib/formato.js";
+import {
+  armarMensaje,
+  CONTACTO_POR_DEFECTO,
+  EJEMPLO_MENSAJE,
+  MAX_TESTIMONIOS,
+  MENSAJES_POR_DEFECTO,
+  MENSAJES_WHATSAPP,
+  TESTIMONIO_VACIO,
+} from "../lib/dominio.js";
+import { enlaceInstagram, enlaceWhatsApp, money, telefonoLegible } from "../lib/formato.js";
 import { Area, Boton, Campo, Icono, Tarjeta } from "../ui/index.jsx";
 import { useAviso } from "../ui/contextoAvisos.js";
 import "./panel.css";
@@ -35,8 +43,15 @@ export default function Contacto() {
 
   const campo = (clave) => (e) => setForm((f) => ({ ...f, [clave]: e.target.value }));
 
+  const cambiarMensaje = (id, texto) =>
+    setForm((f) => ({ ...f, mensajes: { ...f.mensajes, [id]: texto } }));
+
   const hayCambios = useMemo(
-    () => Object.keys(CONTACTO_POR_DEFECTO).some((k) => (form[k] ?? "") !== (contacto[k] ?? "")),
+    () =>
+      Object.keys(CONTACTO_POR_DEFECTO).some((k) => (form[k] ?? "") !== (contacto[k] ?? "")) ||
+      Object.keys(MENSAJES_POR_DEFECTO).some(
+        (k) => (form.mensajes?.[k] ?? "") !== (contacto.mensajes?.[k] ?? ""),
+      ),
     [form, contacto],
   );
 
@@ -111,6 +126,27 @@ export default function Contacto() {
 
       <Tarjeta className="bloque" style={{ marginTop: 24 }}>
         <div className="bloque__cabecera">
+          <h2 className="bloque__titulo">Mensajes de WhatsApp</h2>
+        </div>
+        <div className="bloque__cuerpo--aire portada__campos">
+          <p className="campo__pista">
+            Lo que queda escrito en WhatsApp cuando alguien toca un botón de la tienda. Las
+            palabras entre llaves se reemplazan solas. Si dejas un mensaje vacío, se usa el
+            original. Se guardan con «Guardar cambios».
+          </p>
+          {MENSAJES_WHATSAPP.map((m) => (
+            <EditorMensaje
+              key={m.id}
+              mensaje={m}
+              valor={form.mensajes?.[m.id] ?? ""}
+              alCambiar={(texto) => cambiarMensaje(m.id, texto)}
+            />
+          ))}
+        </div>
+      </Tarjeta>
+
+      <Tarjeta className="bloque" style={{ marginTop: 24 }}>
+        <div className="bloque__cabecera">
           <h2 className="bloque__titulo">Testimonios</h2>
           <Boton
             tamano="pequeno"
@@ -177,5 +213,70 @@ export default function Contacto() {
         </div>
       </Tarjeta>
     </>
+  );
+}
+
+/** Una plantilla: texto editable, botones para insertar sus variables y la
+    vista previa con datos de ejemplo, tal como llegaría al chat. */
+function EditorMensaje({ mensaje, valor, alCambiar }) {
+  const area = useRef(null);
+  const original = MENSAJES_POR_DEFECTO[mensaje.id];
+  // Vacío se muestra el original para editarlo encima, no un cuadro en blanco.
+  const texto = valor.trim() ? valor : original;
+  const vista = armarMensaje({ [mensaje.id]: valor }, mensaje.id, {
+    ...EJEMPLO_MENSAJE,
+    total: money(EJEMPLO_MENSAJE.total),
+  });
+
+  const insertar = (variable) => {
+    const el = area.current;
+    const marca = `{${variable}}`;
+    const inicio = el ? el.selectionStart : texto.length;
+    const fin = el ? el.selectionEnd : texto.length;
+    alCambiar(texto.slice(0, inicio) + marca + texto.slice(fin));
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(inicio + marca.length, inicio + marca.length);
+    });
+  };
+
+  return (
+    <div className="mensaje-editor">
+      <Area
+        etiqueta={mensaje.titulo}
+        ref={area}
+        value={texto}
+        onChange={(e) => alCambiar(e.target.value)}
+        rows={4}
+        maxLength={600}
+      />
+      <div className="mensaje-editor__acciones">
+        {mensaje.variables.map((v) => (
+          <button key={v} type="button" className="chip" onClick={() => insertar(v)}>
+            {`{${v}}`}
+          </button>
+        ))}
+        <Boton
+          variante="fantasma"
+          tamano="pequeno"
+          onClick={() => alCambiar("")}
+          disabled={texto === original}
+        >
+          Restaurar texto original
+        </Boton>
+      </div>
+      <div className="mensaje-editor__vista">
+        <span className="campo__etiqueta">Vista previa</span>
+        <p className="burbuja-whatsapp">{formatoWhatsApp(vista)}</p>
+      </div>
+    </div>
+  );
+}
+
+/** *negrita* como en WhatsApp; los saltos de línea los respeta el CSS. */
+function formatoWhatsApp(texto) {
+  return texto.split(/(\*[^*\n]+\*)/g).map((trozo, i) =>
+    /^\*[^*\n]+\*$/.test(trozo) ? <strong key={i}>{trozo.slice(1, -1)}</strong> : trozo,
   );
 }
